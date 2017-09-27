@@ -3,9 +3,9 @@
 
 #include "Profiler.h"
 
+#include <iostream>
+
 class CompoundingEventProfiler: public Profiler {
-	private:
-		float totalElapsedTime;
 	public:	
 		CompoundingEventProfiler();
 		void stop();
@@ -13,20 +13,24 @@ class CompoundingEventProfiler: public Profiler {
 };
 
 CompoundingEventProfiler::CompoundingEventProfiler() {
-	totalElapsedTime = 0;
+	time = 0;
 }
 
 void CompoundingEventProfiler::stop() {
-	time = timer.getElapsedTime(eventPacket);
-	totalElapsedTime += time;	
+	float lastTimeBlock = timer.getElapsedTime(eventPacket);
+	time += lastTimeBlock;	
 }
 
 void CompoundingEventProfiler::update() {
-	time = timer.getElapsedTime(eventPacket);
-	totalElapsedTime += time;
+	float lastTimeBlock = timer.getElapsedTime(eventPacket);
+
+std::cout << "\n\nLAST TIME BLOCK IS " << lastTimeBlock << std::endl;
+
+	time += lastTimeBlock;
+
+std::cout << "\n\nTOTAL TIME IS NOW " << time << std::endl;
+
 	eventPacket = timer.start();
 }
-
-
 
 #endif

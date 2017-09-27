@@ -1,6 +1,7 @@
 #ifndef PROFILER_H
 #define PROFILER_H
 
+#include <iostream>
 #include "CudaEventLifecycleHandler.h"
 
 class Profiler {
@@ -10,17 +11,18 @@ class Profiler {
 		float time;
 
 	public:
+		~Profiler();
 		void start();
-		virtual void stop()=0;
-		void update();
+		virtual void stop() = 0;
+		virtual void update() = 0;
 		float getTime();
 };
+
+Profiler::~Profiler() {}
 
 void Profiler::start() {
 	eventPacket = timer.start();
 }
-
-void Profiler::update() {}
 
 float Profiler::getTime() {
 	return time;

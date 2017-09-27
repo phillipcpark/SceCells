@@ -14,7 +14,9 @@
 #include <vector>
 #include "SimulationDomainGPU.h"
 
+#include "../profiling/ProfilingCoordinator.h"
 #include "../profiling/CompoundingEventProfiler.h"
+#include "../profiling/SingleEventProfiler.h"
 
 using namespace std;
 
@@ -145,8 +147,11 @@ int main(int argc, char* argv[]) {
 
 
 //MARK: profiling
-CompoundingEventProfiler profiler;
-profiler.start();
+ProfilingCoordinator profiler;
+CompoundingEventProfiler* eventProfile = new CompoundingEventProfiler();
+//SingleEventProfiler* eventProfile = new SingleEventProfiler();
+unsigned index = profiler.addProfiler(eventProfile);
+profiler.startProfiler(index);
 
 	//for (uint i = 0; i <= (uint) (mainPara.totalTimeSteps); i++) {
 	for (uint i = 0; i <= 1000; i++) {
@@ -208,11 +213,14 @@ profiler.start();
 			aniFrame++;
 		}
 //Ali		simuDomain.runAllLogic_M(mainPara.dt);
-profiler.update();
 		simuDomain.runAllLogic_M(mainPara.dt,mainPara.Damp_Coef,mainPara.InitTimeStage);  //Ali
+
+profiler.updateProfiler(index);
+
 	}
 
-profiler.stop();
-std::cout << "\n\n\n\n" << profiler.getTime() << std::endl;
+profiler.stopProfiler(index);
+std::cout << "\n\n\n\n" << profiler.getProfilerTime(index) << "\n\n\n\n";
+
 	return 0;
 }
