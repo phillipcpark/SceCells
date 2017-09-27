@@ -148,9 +148,8 @@ int main(int argc, char* argv[]) {
 
 //MARK: profiling
 ProfilingCoordinator profiler;
-CompoundingEventProfiler* eventProfile = new CompoundingEventProfiler();
-//SingleEventProfiler* eventProfile = new SingleEventProfiler();
-unsigned index = profiler.addProfiler(eventProfile);
+SingleEventProfiler* globalProfiler = new SingleEventProfiler();
+unsigned index = profiler.addProfiler(globalProfiler);
 profiler.startProfiler(index);
 
 	//for (uint i = 0; i <= (uint) (mainPara.totalTimeSteps); i++) {

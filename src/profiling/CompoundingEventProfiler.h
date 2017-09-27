@@ -3,8 +3,6 @@
 
 #include "Profiler.h"
 
-#include <iostream>
-
 class CompoundingEventProfiler: public Profiler {
 	public:	
 		CompoundingEventProfiler();
@@ -23,13 +21,7 @@ void CompoundingEventProfiler::stop() {
 
 void CompoundingEventProfiler::update() {
 	float lastTimeBlock = timer.getElapsedTime(eventPacket);
-
-std::cout << "\n\nLAST TIME BLOCK IS " << lastTimeBlock << std::endl;
-
 	time += lastTimeBlock;
-
-std::cout << "\n\nTOTAL TIME IS NOW " << time << std::endl;
-
 	eventPacket = timer.start();
 }
 
