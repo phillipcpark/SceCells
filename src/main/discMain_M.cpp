@@ -14,7 +14,7 @@
 #include <vector>
 #include "SimulationDomainGPU.h"
 
-#include "../profiling/SingleEventProfiler.h"
+#include "../profiling/CompoundingEventProfiler.h"
 
 using namespace std;
 
@@ -81,9 +81,6 @@ void updateDivThres(double& curDivThred, uint& i, double& curTime,  //Ali
 }
 
 int main(int argc, char* argv[]) {
-cudaDeviceReset();
-cudaSetDevice(0);
-
 	// initialize random seed.
 	srand(time(NULL));
 
@@ -145,10 +142,15 @@ cudaSetDevice(0);
 	uint aniFrame = 0;
 	// main simulation steps.
        bool FirstData=false ; 
-	for (uint i = 0; i <= (uint) (mainPara.totalTimeSteps); i++) {
 
-SingleEventProfiler foo;
-foo.start();
+
+//MARK: profiling
+CompoundingEventProfiler profiler;
+profiler.start();
+
+	//for (uint i = 0; i <= (uint) (mainPara.totalTimeSteps); i++) {
+	for (uint i = 0; i <= 1000; i++) {
+
 		if (i % mainPara.aniAuxVar == 0) {
 			std::cout << "substep 1 " << std::endl;
 			std::cout << "substep 1_confirm " << std::flush;
@@ -206,12 +208,11 @@ foo.start();
 			aniFrame++;
 		}
 //Ali		simuDomain.runAllLogic_M(mainPara.dt);
+profiler.update();
 		simuDomain.runAllLogic_M(mainPara.dt,mainPara.Damp_Coef,mainPara.InitTimeStage);  //Ali
-
-foo.stop();
-std::cout << "\n\n\n\n\n" << foo.getTime() << "\n\n\n\n";
-
 	}
 
+profiler.stop();
+std::cout << "\n\n\n\n" << profiler.getTime() << std::endl;
 	return 0;
 }
