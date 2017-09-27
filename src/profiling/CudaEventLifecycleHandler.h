@@ -1,5 +1,5 @@
-#ifndef CUDA_EVENT_MANAGER
-#define CUDA_EVENT_MANAGER
+#ifndef CUDA_EVENT_LIFECYCLE_HANDLER
+#define CUDA_EVENT_LIFECYCLE_HANDLER
 
 struct CudaEventPacket {
 	cudaEvent_t* start;
@@ -9,15 +9,20 @@ struct CudaEventPacket {
 		start = new cudaEvent_t();
 		stop = new cudaEvent_t();
 	}
+
+	~CudaEventPacket() {
+		delete start;
+		delete stop;
+	}
 };
 
-class CudaEventManager {
+class CudaEventLifecycleHandler {
 	public:
 		CudaEventPacket* start();
 		float getElapsedTime(CudaEventPacket*);
 };
 
-CudaEventPacket* CudaEventManager::start() {
+CudaEventPacket* CudaEventLifecycleHandler::start() {
 	CudaEventPacket* eventPacket = new CudaEventPacket();	
 
 	cudaEventCreate(eventPacket->start);
@@ -27,7 +32,7 @@ CudaEventPacket* CudaEventManager::start() {
 	return eventPacket;
 }
 
-float CudaEventManager::getElapsedTime(CudaEventPacket* eventPacket) {
+float CudaEventLifecycleHandler::getElapsedTime(CudaEventPacket* eventPacket) {
 	cudaEvent_t start = *(eventPacket->start);
 	cudaEvent_t stop = *(eventPacket->stop);
 

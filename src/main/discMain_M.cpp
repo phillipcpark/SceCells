@@ -14,6 +14,8 @@
 #include <vector>
 #include "SimulationDomainGPU.h"
 
+#include "../profiling/SingleEventProfiler.h"
+
 using namespace std;
 
 GlobalConfigVars globalConfigVars;
@@ -79,6 +81,9 @@ void updateDivThres(double& curDivThred, uint& i, double& curTime,  //Ali
 }
 
 int main(int argc, char* argv[]) {
+cudaDeviceReset();
+cudaSetDevice(0);
+
 	// initialize random seed.
 	srand(time(NULL));
 
@@ -141,6 +146,9 @@ int main(int argc, char* argv[]) {
 	// main simulation steps.
        bool FirstData=false ; 
 	for (uint i = 0; i <= (uint) (mainPara.totalTimeSteps); i++) {
+
+SingleEventProfiler foo;
+foo.start();
 		if (i % mainPara.aniAuxVar == 0) {
 			std::cout << "substep 1 " << std::endl;
 			std::cout << "substep 1_confirm " << std::flush;
@@ -199,6 +207,10 @@ int main(int argc, char* argv[]) {
 		}
 //Ali		simuDomain.runAllLogic_M(mainPara.dt);
 		simuDomain.runAllLogic_M(mainPara.dt,mainPara.Damp_Coef,mainPara.InitTimeStage);  //Ali
+
+foo.stop();
+std::cout << "\n\n\n\n\n" << foo.getTime() << "\n\n\n\n";
+
 	}
 
 	return 0;
