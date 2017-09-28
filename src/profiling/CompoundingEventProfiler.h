@@ -6,8 +6,8 @@
 class CompoundingEventProfiler: public Profiler {
 	public:	
 		CompoundingEventProfiler();
+		~CompoundingEventProfiler();
 		void stop();
-		void update();
 };
 
 #endif

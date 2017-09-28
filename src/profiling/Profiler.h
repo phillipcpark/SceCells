@@ -11,10 +11,9 @@ class Profiler {
 		float time;
 
 	public:
-		~Profiler();
+		virtual ~Profiler()=0;
 		void start();
-		virtual void stop() = 0;
-		virtual void update() = 0;
+		virtual void stop()=0;
 		float getTime();
 };
 

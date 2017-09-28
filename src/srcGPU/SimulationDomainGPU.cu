@@ -70,8 +70,13 @@ void SimulationDomainGPU::initializeNodes_M(std::vector<SceNodeType> &nodeTypes,
 	//			<< initActiveIntnlNodeCounts[i] << ") ";
 	//}
 	//std::cout << std::endl;
+
+std::cout << "\n\n\nABOUT TO INITIALIZE CELLS\n\n\n";
+
 	cells = SceCells(&nodes, initActiveMembrNodeCounts,
 			initActiveIntnlNodeCounts, initGrowProgVec, InitTimeStage);  //Ali
+
+std::cout << "\n\n\nCELLS INITIALIZED\n\n\n";
 
 	//std::cout << "break point 5 " << std::endl;
 	//std::cout.flush();

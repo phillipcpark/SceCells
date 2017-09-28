@@ -16,6 +16,7 @@
 
 #include "../profiling/ProfilingCoordinator.h"
 #include "../profiling/SingleEventProfiler.h"
+#include "../profiling/CompoundingEventProfiler.h"
 
 using namespace std;
 
@@ -147,14 +148,21 @@ int main(int argc, char* argv[]) {
 
 //MARK: profiling
 ProfilingCoordinator profiler;
+
 SingleEventProfiler* globalProfiler = new SingleEventProfiler();
-unsigned index = profiler.addProfiler(globalProfiler);
-profiler.startProfiler(index);
+CompoundingEventProfiler* aniAuxProfiler = new CompoundingEventProfiler();
+
+static unsigned aniAuxProfilerIndex = profiler.addProfiler(aniAuxProfiler);
+static unsigned mainProfilerIndex = profiler.addProfiler(globalProfiler);
+
+profiler.startProfiler(mainProfilerIndex);
 
 	//for (uint i = 0; i <= (uint) (mainPara.totalTimeSteps); i++) {
-	for (uint i = 0; i <= 1000; i++) {
+	for (uint i = 0; i <= 10; i++) {
 
 		if (i % mainPara.aniAuxVar == 0) {
+			profiler.startProfiler(aniAuxProfilerIndex);
+
 			std::cout << "substep 1 " << std::endl;
 			std::cout << "substep 1_confirm " << std::flush;
 
@@ -209,13 +217,18 @@ profiler.startProfiler(index);
 			// std::cout << "in ani step " << aniFrame << std::endl;
 			std::cout << "substep 6 " << std::endl;
 			aniFrame++;
+
+			profiler.stopProfiler(aniAuxProfilerIndex);
+
 		}
 //Ali		simuDomain.runAllLogic_M(mainPara.dt);
 		simuDomain.runAllLogic_M(mainPara.dt,mainPara.Damp_Coef,mainPara.InitTimeStage);  //Ali
 	}
 
-profiler.stopProfiler(index);
-std::cout << "\n\nCOMPLETE SIM TIME: " << profiler.getProfilerTime(index) << "\n\n";
+profiler.stopProfiler(mainProfilerIndex);
+
+for (unsigned i = 0; i < 11; i++)
+std::cout << "\nTIME: " << profiler.getProfilerTime(i) << std::endl;;
 
 	return 0;
 }

@@ -651,12 +651,17 @@ SceCells::SceCells(SceNodes* nodesInput,
 //MARK: instantiate profiling events and store indices
 	ProfilingCoordinator coordinator;
 	unsigned profilerCount = 9;
-	CompoundingEventProfiler** profilers = new CompoundingEventProfiler*[profilerCount]();
 
-	for (unsigned i = 0; i < profilerCount; i++) {
+std::cout << "\n\n\nINSTANTIATING PROFILERS\n\n\n";
+
+	CompoundingEventProfiler** profilers = new CompoundingEventProfiler*[profilerCount];
+
+	for (unsigned i = 0; i < profilerCount; i++) { 
+		profilers[i] = new CompoundingEventProfiler();	
 		unsigned index = coordinator.addProfiler(profilers[i]);
-		this->profilingIndices.push_back(index);
 	}
+
+std::cout << "\n\n\nPROFILERS INSTANTIATED\n\n\n";
 }
 
 void SceCells::initCellInfoVecs() {
@@ -1379,8 +1384,16 @@ void SceCells::runAllCellLevelLogicsDisc(double dt) {
 
 //Ali void SceCells::runAllCellLogicsDisc_M(double dt) {
 void SceCells::runAllCellLogicsDisc_M(double dt, double Damp_Coef, double InitTimeStage) {   //Ali
+
+//MARK: profiling
+ProfilingCoordinator profilingCoordinator;
+unsigned index = 0;
+	
 	std::cout << "     *** 1 ***" << endl;
 	std::cout.flush();
+
+profilingCoordinator.startProfiler(index);
+
 	this->dt = dt;
         this->Damp_Coef=Damp_Coef ; //Ali 
         this->InitTimeStage=InitTimeStage   ;  //A & A 
@@ -1392,14 +1405,28 @@ void SceCells::runAllCellLogicsDisc_M(double dt, double Damp_Coef, double InitTi
 			* growthAuxData.randomGrowthSpeedMax_Ori;
 	curTime = curTime + dt;
 
+profilingCoordinator.stopProfiler(index);
+index++;
+profilingCoordinator.startProfiler(index);
+
 	std::cout << "     *** 2 ***" << endl;
 	std::cout.flush();
 	applySceCellDisc_M();
+
+profilingCoordinator.stopProfiler(index);
+index++;
+profilingCoordinator.startProfiler(index);
+
 	std::cout << "     *** 3 ***" << endl;
 	std::cout.flush();
 //Ali        
 	computeCenterPos_M();
         BC_Imp_M() ; 
+
+profilingCoordinator.stopProfiler(index);
+index++;
+profilingCoordinator.startProfiler(index);
+
 	std::cout << "     *** 5 ***" << endl;
 	std::cout.flush();
 	
@@ -1410,25 +1437,53 @@ void SceCells::runAllCellLogicsDisc_M(double dt, double Damp_Coef, double InitTi
 
      //Ali cmment //
 //	computeCenterPos_M();
+
+profilingCoordinator.stopProfiler(index);
+index++;
+profilingCoordinator.startProfiler(index);
+
 	std::cout << "     *** 5 ***" << endl;
 	std::cout.flush();
      //Ali cmment //
 	growAtRandom_M(dt);
+
+profilingCoordinator.stopProfiler(index);
+index++;
+profilingCoordinator.startProfiler(index);
+
 	std::cout << "     *** 6 ***" << endl;
 	std::cout.flush();
 	//if (curTime<3300.0)
 	divide2D_M();
+
+profilingCoordinator.stopProfiler(index);
+index++;
+profilingCoordinator.startProfiler(index);
+
 	std::cout << "     *** 7 ***" << endl;
 	std::cout.flush();
 	distributeCellGrowthProgress_M();
+
+profilingCoordinator.stopProfiler(index);
+index++;
+profilingCoordinator.startProfiler(index);
+
 	std::cout << "     *** 8 ***" << endl;
 	std::cout.flush();
 
         findTangentAndNormal_M();//AAMIRI ADDED May29
 	allComponentsMove_M();
+
+profilingCoordinator.stopProfiler(index);
+index++;
+profilingCoordinator.startProfiler(index);
+
 	std::cout << "     *** 9 ***" << endl;
 	std::cout.flush();
 	handleMembrGrowth_M();
+
+profilingCoordinator.stopProfiler(index);
+
 	std::cout << "     *** 10 ***" << endl;
 	std::cout.flush();
 }

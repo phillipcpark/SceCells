@@ -5,8 +5,8 @@
 
 class SingleEventProfiler: public Profiler {
 	public:
+		~SingleEventProfiler();
 		void stop();
-		void update();
 };
 
 #endif

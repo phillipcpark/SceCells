@@ -8,10 +8,9 @@ class ProfilingCoordinator {
 	private:
 		static std::vector<Profiler*> profilers;
 	public:
-		~ProfilingCoordinator();
+		//DO NOT define destructor, otherwise, static member will be deallocated
 		unsigned addProfiler(Profiler*) const; //returns index of child profiler
 		void startProfiler(unsigned) const;
-		void updateProfiler(unsigned) const;
 		void stopProfiler(unsigned) const;
 		float getProfilerTime(unsigned) const;
 };
