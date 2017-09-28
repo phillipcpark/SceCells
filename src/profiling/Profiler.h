@@ -18,15 +18,5 @@ class Profiler {
 		float getTime();
 };
 
-Profiler::~Profiler() {}
-
-void Profiler::start() {
-	eventPacket = timer.start();
-}
-
-float Profiler::getTime() {
-	return time;
-}
-
 #endif
 

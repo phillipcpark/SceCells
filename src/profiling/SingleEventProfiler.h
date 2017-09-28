@@ -9,10 +9,4 @@ class SingleEventProfiler: public Profiler {
 		void update();
 };
 
-void SingleEventProfiler::stop() {
-	time = timer.getElapsedTime(eventPacket);
-}
-
-void SingleEventProfiler::update() {}
-
 #endif

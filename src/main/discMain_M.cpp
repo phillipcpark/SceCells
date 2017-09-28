@@ -15,7 +15,6 @@
 #include "SimulationDomainGPU.h"
 
 #include "../profiling/ProfilingCoordinator.h"
-#include "../profiling/CompoundingEventProfiler.h"
 #include "../profiling/SingleEventProfiler.h"
 
 using namespace std;
@@ -213,13 +212,10 @@ profiler.startProfiler(index);
 		}
 //Ali		simuDomain.runAllLogic_M(mainPara.dt);
 		simuDomain.runAllLogic_M(mainPara.dt,mainPara.Damp_Coef,mainPara.InitTimeStage);  //Ali
-
-profiler.updateProfiler(index);
-
 	}
 
 profiler.stopProfiler(index);
-std::cout << "\n\n\n\n" << profiler.getProfilerTime(index) << "\n\n\n\n";
+std::cout << "\n\nCOMPLETE SIM TIME: " << profiler.getProfilerTime(index) << "\n\n";
 
 	return 0;
 }

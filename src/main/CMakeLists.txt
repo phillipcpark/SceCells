@@ -12,7 +12,7 @@ file(GLOB SRC_FILES ./discMain.cpp)
 cuda_add_executable(${DISK_PROJECT_NAME} ${SRC_FILES})
 add_dependencies(${DISK_PROJECT_NAME} gtest)
 add_dependencies(${DISK_PROJECT_NAME} gtest_main)
-add_dependencies(${DISK_PROJECT_NAME} SceGPU)
+add_dependencies(${DISK_PROJECT_NAME} SceGPU) 
 
 if(NOT WIN32)
         #target_link_libraries(${DISK_PROJECT_NAME} pthread)
@@ -86,6 +86,7 @@ cuda_add_executable(${DISK_M_PROJECT_NAME} ${SRC_FILES})
 add_dependencies(${DISK_M_PROJECT_NAME} gtest)
 add_dependencies(${DISK_M_PROJECT_NAME} gtest_main)
 add_dependencies(${DISK_M_PROJECT_NAME} SceGPU)
+add_dependencies(${DISK_M_PROJECT_NAME} SceProfiling)
 
 if(NOT WIN32)
         #target_link_libraries(${DISK_M_PROJECT_NAME} pthread)
@@ -93,6 +94,7 @@ if(NOT WIN32)
         target_link_libraries(${DISK_M_PROJECT_NAME} SceInit)
         target_link_libraries(${DISK_M_PROJECT_NAME} SceUtils)
         #target_link_libraries(${DISK_M_PROJECT_NAME} SceUtilsGPU)
+	target_link_libraries(${DISK_M_PROJECT_NAME} SceProfiling)
 
         target_link_libraries(${DISK_M_PROJECT_NAME}
                 ${GOOGLETEST_DIR}/libgtest.a

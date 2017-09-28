@@ -626,7 +626,7 @@ SceCells::SceCells(SceNodes* nodesInput,
 	distributeIsActiveInfo();
 }
 
-
+//MARK: this is the constructor that is used 9/27/17
 SceCells::SceCells(SceNodes* nodesInput,
 		std::vector<uint>& initActiveMembrNodeCounts,
 		std::vector<uint>& initActiveIntnlNodeCounts,
@@ -647,6 +647,16 @@ SceCells::SceCells(SceNodes* nodesInput,
 	copyToGPUConstMem();
 	copyInitActiveNodeCount_M(initActiveMembrNodeCounts,
 			initActiveIntnlNodeCounts, initGrowProgVec);
+
+//MARK: instantiate profiling events and store indices
+	ProfilingCoordinator coordinator;
+	unsigned profilerCount = 9;
+	CompoundingEventProfiler** profilers = new CompoundingEventProfiler*[profilerCount]();
+
+	for (unsigned i = 0; i < profilerCount; i++) {
+		unsigned index = coordinator.addProfiler(profilers[i]);
+		this->profilingIndices.push_back(index);
+	}
 }
 
 void SceCells::initCellInfoVecs() {

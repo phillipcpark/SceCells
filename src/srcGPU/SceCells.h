@@ -2,6 +2,9 @@
 #define SCECELLS_H_
 
 #include "SceNodes.h"
+#include "../profiling/ProfilingCoordinator.h"
+#include "../profiling/CompoundingEventProfiler.h"
+
 #include <time.h>
 #include <thrust/tabulate.h>
 #define PI 3.14159265358979
@@ -2450,6 +2453,9 @@ class SceCells {
 	thrust::constant_iterator<double> initGrowthProgress;
 
 	uint totalNodeCountForActiveCells;
+
+//MARK: profiling memebers
+	std::vector<unsigned> profilingIndices;
 
 	double dt;
         double Damp_Coef ;   //Ali

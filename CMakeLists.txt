@@ -38,6 +38,10 @@ set(CPU_SOURCE_DIR ${PROJECT_SOURCE_DIR}/src/srcCPU)
 set(EXT_PROJECTS_DIR ${PROJECT_SOURCE_DIR}/src/ext)
 #set(PROJECT_EXE_DIR ${PROJECT_SOURCE_DIR}/exeFiles)
 #location of executables
+
+#MARK: set location of profilnig files
+SET(PROFILING_SOURCE_DIR ${PROJECT_SOURCE_DIR}/src/profiling)
+
 SET(CMAKE_BUILD_DIR ${CMAKE_SOURCE_DIR}/bin)
 #location of unit test files
 SET(CMAKE_UNITTEST_DIR ${CMAKE_SOURCE_DIR}/tst/unitTest)
