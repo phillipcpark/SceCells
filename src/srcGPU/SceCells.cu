@@ -651,17 +651,12 @@ SceCells::SceCells(SceNodes* nodesInput,
 //MARK: instantiate profiling events and store indices
 	ProfilingCoordinator coordinator;
 	unsigned profilerCount = 9;
-
-std::cout << "\n\n\nINSTANTIATING PROFILERS\n\n\n";
-
 	CompoundingEventProfiler** profilers = new CompoundingEventProfiler*[profilerCount];
 
 	for (unsigned i = 0; i < profilerCount; i++) { 
-		profilers[i] = new CompoundingEventProfiler();	
+		profilers[i] = new CompoundingEventProfiler("foo");	
 		unsigned index = coordinator.addProfiler(profilers[i]);
 	}
-
-std::cout << "\n\n\nPROFILERS INSTANTIATED\n\n\n";
 }
 
 void SceCells::initCellInfoVecs() {

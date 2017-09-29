@@ -13,6 +13,7 @@ class ProfilingCoordinator {
 		void startProfiler(unsigned) const;
 		void stopProfiler(unsigned) const;
 		float getProfilerTime(unsigned) const;
+		std::string getProfilerID(unsigned) const;
 };
 
 #endif

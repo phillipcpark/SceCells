@@ -5,7 +5,7 @@
 
 class CompoundingEventProfiler: public Profiler {
 	public:	
-		CompoundingEventProfiler();
+		CompoundingEventProfiler(std::string);
 		~CompoundingEventProfiler();
 		void stop();
 };

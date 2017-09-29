@@ -5,6 +5,7 @@
 
 class SingleEventProfiler: public Profiler {
 	public:
+		SingleEventProfiler(std::string);
 		~SingleEventProfiler();
 		void stop();
 };

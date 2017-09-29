@@ -1,11 +1,17 @@
 #include "Profiler.h"
 
+Profiler::Profiler(std::string identifier) {
+	this->identifier = identifier;
+}
+
 Profiler::~Profiler() {}
 
 void Profiler::start() {
-	std::cout << "\n\nPROFILER CREATED EVENT PACKET\n\n";
 	eventPacket = timer.start();
-	std::cout << "\n\nTIMER STARTED\n\n";
+}
+
+std::string Profiler::getID() {
+	return identifier;
 }
 
 float Profiler::getTime() {

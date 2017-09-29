@@ -7,13 +7,16 @@
 class Profiler {
 	protected:
 		CudaEventLifecycleHandler timer;
-		CudaEventPacket* eventPacket;
+		CudaEventPacket* eventPacket;	
+		std::string identifier;
 		float time;
 
+		Profiler(std::string);
 	public:
 		virtual ~Profiler()=0;
 		void start();
 		virtual void stop()=0;
+		std::string getID();
 		float getTime();
 };
 

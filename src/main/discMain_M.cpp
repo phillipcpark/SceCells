@@ -149,8 +149,8 @@ int main(int argc, char* argv[]) {
 //MARK: profiling
 ProfilingCoordinator profiler;
 
-SingleEventProfiler* globalProfiler = new SingleEventProfiler();
-CompoundingEventProfiler* aniAuxProfiler = new CompoundingEventProfiler();
+SingleEventProfiler* globalProfiler = new SingleEventProfiler("High-level");
+CompoundingEventProfiler* aniAuxProfiler = new CompoundingEventProfiler("AniAux");
 
 static unsigned aniAuxProfilerIndex = profiler.addProfiler(aniAuxProfiler);
 static unsigned mainProfilerIndex = profiler.addProfiler(globalProfiler);
@@ -228,7 +228,7 @@ profiler.startProfiler(mainProfilerIndex);
 profiler.stopProfiler(mainProfilerIndex);
 
 for (unsigned i = 0; i < 11; i++)
-std::cout << "\nTIME: " << profiler.getProfilerTime(i) << std::endl;;
+std::cout << "\nTIME " << profiler.getProfilerID(i) << " " << profiler.getProfilerTime(i) << std::endl;;
 
 	return 0;
 }

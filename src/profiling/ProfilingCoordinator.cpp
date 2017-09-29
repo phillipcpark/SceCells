@@ -21,4 +21,6 @@ float ProfilingCoordinator::getProfilerTime(unsigned index) const {
 	return ProfilingCoordinator::profilers.at(index)->getTime();
 }
 
-
+std::string ProfilingCoordinator::getProfilerID(unsigned index) const {
+	return ProfilingCoordinator::profilers.at(index)->getID();
+}
