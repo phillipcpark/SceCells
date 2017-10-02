@@ -11,5 +11,7 @@ add_library(SceProfiling
 	ProfilingCoordinator.cpp
 	CudaEventLifecycleHandler.h
 	CudaEventLifecycleHandler.cpp
+	OFStreamCSV.h
+	OFStreamCSV.cpp
 )
 
