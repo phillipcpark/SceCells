@@ -3,10 +3,12 @@
 
 #include <vector>
 #include "Profiler.h"
+#include "OFStreamCSV.h"
 
 class ProfilingCoordinator {
 	private:
 		static std::vector<Profiler*> profilers;
+		static OFStreamCSV* outputStream;
 	public:
 		//DO NOT define destructor, otherwise, static member will be deallocated
 		unsigned addProfiler(Profiler*) const; //returns index of child profiler

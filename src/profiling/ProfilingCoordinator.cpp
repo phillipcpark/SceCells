@@ -1,6 +1,7 @@
 #include "ProfilingCoordinator.h"
 
 std::vector<Profiler*> ProfilingCoordinator::profilers = std::vector<Profiler*>();
+OFStreamCSV* ProfilingCoordinator::outputStream = OFStreamCSV*;
 
 unsigned ProfilingCoordinator::addProfiler(Profiler* child) const {
 	ProfilingCoordinator::profilers.push_back(child);

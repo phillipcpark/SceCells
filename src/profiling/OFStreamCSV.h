@@ -5,9 +5,9 @@
 #include <fstream>
 #include <string>
 
-#define OUTPUT_PATH "../../dataOutput/profiling_output.txt"
-#define COLUMN_DELIMITER_CSV ","
-#define NEWLINE_CSV ",,,,,,"
+#define OUTPUT_PATH          "../../dataOutput/profiling_output.txt"
+#define COLUMN_DELIMITER_CSV " ,"
+#define NEWLINE_CSV          " ,,,,,,"
 
 class OFStreamCSV {
 	private:
