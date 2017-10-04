@@ -1,5 +1,7 @@
 #include "SceCells.h"
+
 #include <cmath>
+#include <string>
 
 double epsilon = 1.0e-12;
 
@@ -654,7 +656,7 @@ SceCells::SceCells(SceNodes* nodesInput,
 	CompoundingEventProfiler** profilers = new CompoundingEventProfiler*[profilerCount];
 
 	for (unsigned i = 0; i < profilerCount; i++) { 
-		profilers[i] = new CompoundingEventProfiler("foo");	
+		profilers[i] = new CompoundingEventProfiler("cellLogic");	
 		unsigned index = coordinator.addProfiler(profilers[i]);
 	}
 }

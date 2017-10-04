@@ -14,6 +14,7 @@ class ProfilingCoordinator {
 		unsigned addProfiler(Profiler*) const; //returns index of child profiler
 		void startProfiler(unsigned) const;
 		void stopProfiler(unsigned) const;
+		void end();
 		float getProfilerTime(unsigned) const;
 		std::string getProfilerID(unsigned) const;
 };

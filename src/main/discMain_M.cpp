@@ -230,5 +230,7 @@ profiler.stopProfiler(mainProfilerIndex);
 for (unsigned i = 0; i < 11; i++)
 std::cout << "\nTIME " << profiler.getProfilerID(i) << " " << profiler.getProfilerTime(i) << std::endl;;
 
+profiler.end();
+
 	return 0;
 }

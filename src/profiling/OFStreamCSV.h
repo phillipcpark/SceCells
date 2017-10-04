@@ -5,7 +5,7 @@
 #include <fstream>
 #include <string>
 
-#define OUTPUT_PATH          "../../dataOutput/profiling_output.txt"
+#define OUTPUT_PATH          "profiling_output.txt"
 #define COLUMN_DELIMITER_CSV " ,"
 #define NEWLINE_CSV          " ,,,,,,"
 
@@ -15,8 +15,10 @@ class OFStreamCSV {
 	public:
 		OFStreamCSV();
 		void write(std::string);
+		void write(float);
 		void newColumn();	
-		void newRow();	
+		void newRow();
+		void close();	
 };
 
 #endif

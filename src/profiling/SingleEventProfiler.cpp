@@ -1,15 +1,17 @@
 #include "SingleEventProfiler.h"
 
-SingleEventProfiler::SingleEventProfiler(std::string identifier): Profiler(identifier) {}
+SingleEventProfiler::SingleEventProfiler(std::string identifier, bool rowEnd): Profiler(identifier, rowEnd) {}
 
 
 SingleEventProfiler::~SingleEventProfiler() {
 	delete eventPacket;
-	eventPacket = NULL;
 }
 
 void SingleEventProfiler::stop() {
-	time = timer.getElapsedTime(eventPacket);
+	if (eventPacket != NULL) {
+		time = timer.getElapsedTime(eventPacket);	
+		eventPacket = NULL;
+	}
 }
 
 

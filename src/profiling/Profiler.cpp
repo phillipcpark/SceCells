@@ -1,7 +1,8 @@
 #include "Profiler.h"
 
-Profiler::Profiler(std::string identifier) {
+Profiler::Profiler(std::string identifier, bool rowEnd) {
 	this->identifier = identifier;
+	this->rowEnd = rowEnd;
 }
 
 Profiler::~Profiler() {}
@@ -18,4 +19,9 @@ float Profiler::getTime() {
 	return time;
 }
 
+void Profiler::setOutputStream(OFStreamCSV* outputStream) {
+	this->outputStream = outputStream;
+	outputStream->write(identifier);
+	outputStream->newRow();
+}	
 
