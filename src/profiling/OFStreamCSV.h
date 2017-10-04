@@ -5,7 +5,7 @@
 #include <fstream>
 #include <string>
 
-#define OUTPUT_PATH          "profiling_output.txt"
+#define OUTPUT_PATH          "dataOutput/profiling_output.csv"
 #define COLUMN_DELIMITER_CSV " ,"
 #define NEWLINE_CSV          " ,,,,,,\n"
 

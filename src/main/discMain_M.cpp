@@ -150,7 +150,9 @@ int main(int argc, char* argv[]) {
 ProfilingCoordinator profiler;
 
 SingleEventProfiler* globalProfiler = new SingleEventProfiler("High-level");
-CompoundingEventProfiler* aniAuxProfiler = new CompoundingEventProfiler("AniAux");
+globalProfiler->start();
+
+//CompoundingEventProfiler* aniAuxProfiler = new CompoundingEventProfiler("AniAux");
 
 //static unsigned aniAuxProfilerIndex = profiler.addProfiler(aniAuxProfiler);
 //static unsigned mainProfilerIndex = profiler.addProfiler(globalProfiler);
@@ -158,7 +160,7 @@ CompoundingEventProfiler* aniAuxProfiler = new CompoundingEventProfiler("AniAux"
 //profiler.startProfiler(mainProfilerIndex);
 
 	//for (uint i = 0; i <= (uint) (mainPara.totalTimeSteps); i++) {
-	for (uint i = 0; i <= 10; i++) {
+	for (uint i = 0; i <= 9999; i++) {
 
 		if (i % mainPara.aniAuxVar == 0) {
 			//profiler.startProfiler(aniAuxProfilerIndex);
@@ -231,6 +233,9 @@ CompoundingEventProfiler* aniAuxProfiler = new CompoundingEventProfiler("AniAux"
 for (unsigned i = 0; i < 11; i++)
 std::cout << "\nTIME " << profiler.getProfilerID(i) << " " << profiler.getProfilerTime(i) << std::endl;;
 */
+
+globalProfiler->stop();
+std::cout << "\n\n\nTOTAL TIME " << globalProfiler->getTime() << "\n\n";
 
 profiler.end();
 

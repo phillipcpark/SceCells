@@ -656,11 +656,13 @@ SceCells::SceCells(SceNodes* nodesInput,
 	CompoundingEventProfiler** profilers = new CompoundingEventProfiler*[profilerCount];
 
 	for (unsigned i = 0; i < profilerCount; i++) {
+		std::string id = "cell_logic_" + static_cast<ostringstream*>(&(ostringstream() << int(i + 1)))->str();
+
 		if (i == (profilerCount - 1))
-			profilers[i] = new CompoundingEventProfiler("cellLogic", true);
+			profilers[i] = new CompoundingEventProfiler(id, true);
  
 		else
-			profilers[i] = new CompoundingEventProfiler("cellLogic");	
+			profilers[i] = new CompoundingEventProfiler(id);	
 	
 		unsigned index = coordinator.addProfiler(profilers[i]);
 	}
