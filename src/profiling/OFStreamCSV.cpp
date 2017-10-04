@@ -9,7 +9,6 @@ void OFStreamCSV::write(std::string toWrite) {
 }
 
 void OFStreamCSV::write(float toWrite) {
-	std::cout << "\n\n\nSTREAMER CLASS WRITING " << toWrite << "\n\n";
 	streamCSV << toWrite;
 }
 

@@ -22,6 +22,9 @@ float Profiler::getTime() {
 void Profiler::setOutputStream(OFStreamCSV* outputStream) {
 	this->outputStream = outputStream;
 	outputStream->write(identifier);
-	outputStream->newRow();
+	if (rowEnd)
+		outputStream->newRow();
+	else
+		outputStream->newColumn();
 }	
 

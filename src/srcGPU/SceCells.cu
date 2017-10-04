@@ -655,8 +655,13 @@ SceCells::SceCells(SceNodes* nodesInput,
 	unsigned profilerCount = 9;
 	CompoundingEventProfiler** profilers = new CompoundingEventProfiler*[profilerCount];
 
-	for (unsigned i = 0; i < profilerCount; i++) { 
-		profilers[i] = new CompoundingEventProfiler("cellLogic");	
+	for (unsigned i = 0; i < profilerCount; i++) {
+		if (i == (profilerCount - 1))
+			profilers[i] = new CompoundingEventProfiler("cellLogic", true);
+ 
+		else
+			profilers[i] = new CompoundingEventProfiler("cellLogic");	
+	
 		unsigned index = coordinator.addProfiler(profilers[i]);
 	}
 }

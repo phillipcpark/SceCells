@@ -7,7 +7,7 @@
 
 #define OUTPUT_PATH          "profiling_output.txt"
 #define COLUMN_DELIMITER_CSV " ,"
-#define NEWLINE_CSV          " ,,,,,,"
+#define NEWLINE_CSV          " ,,,,,,\n"
 
 class OFStreamCSV {
 	private:

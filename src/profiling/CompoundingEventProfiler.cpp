@@ -14,12 +14,9 @@ void CompoundingEventProfiler::stop() {
 		time += lastTimeBlock;	
 
 		eventPacket = NULL;
-
-std::cout << "\n\n\nPROFILER WRITING " << lastTimeBlock << "\n\n";
-
 		outputStream->write(lastTimeBlock);
 	
-		if (!rowEnd)
+		if (rowEnd)
 			outputStream->newRow();
 		else
 			outputStream->newColumn();
