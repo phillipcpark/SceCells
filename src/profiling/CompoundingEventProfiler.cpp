@@ -8,16 +8,23 @@ CompoundingEventProfiler::~CompoundingEventProfiler() {
 	delete eventPacket;
 }
 
+void CompoundingEventProfiler::start() {
+	eventPacket = timer.start();
+}
+
 void CompoundingEventProfiler::stop() {
 	if (eventPacket != NULL) {	
 		float lastTimeBlock = timer.getElapsedTime(eventPacket);	
 		time += lastTimeBlock;	
+		outputStream->write(time);
 
 		eventPacket = NULL;
 	}
 }
 
-void CompoundingEventProfiler::setOutputStream(OFStreamCSV* outputStream) {
+void CompoundingEventProfiler::setStrategyOutputStream(OFStreamCSV* outputStream) {}
+
+void CompoundingEventProfiler::setSummingOutputStream(OFStreamCSV* outputStream) {
 	this->outputStream = outputStream;
 	outputStream->write(identifier);
 

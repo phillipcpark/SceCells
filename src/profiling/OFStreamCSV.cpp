@@ -1,7 +1,16 @@
 #include "OFStreamCSV.h"
 
-OFStreamCSV::OFStreamCSV() {
-	streamCSV.open(OUTPUT_PATH);
+OFStreamCSV::OFStreamCSV(PROFILE_TYPE type) {
+	switch(type) {
+		case STRATEGY: 
+			streamCSV.open(OUTPUT_PATH_STRATEGY);
+			break;
+		case SUMMED:
+			streamCSV.open(OUTPUT_PATH_SUMMING);
+			break;
+		default:
+			break;
+	}
 }
 
 void OFStreamCSV::write(std::string toWrite) {

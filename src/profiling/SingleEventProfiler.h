@@ -7,9 +7,10 @@ class SingleEventProfiler: public Profiler {
 	public:
 		SingleEventProfiler(std::string identifier, bool rowEnd = false);
 		~SingleEventProfiler();
+		void start();
 		void stop();
-		void setOutputStream(OFStreamCSV* outputStream);
-	protected:
+		void setStrategyOutputStream(OFStreamCSV*);
+		void setSummingOutputStream(OFStreamCSV*);
 		void setChildOutputStream();
 };
 

@@ -10,20 +10,19 @@ class Profiler {
 		CudaEventLifecycleHandler timer;
 		CudaEventPacket* eventPacket;
 		OFStreamCSV* outputStream;
-	
 		std::string identifier;
 		float time;
 		bool rowEnd;
 
 		Profiler(std::string identifier, bool rowEnd = false);
-		virtual void setChildOutputStream()=0;
+
 	public:
 		virtual ~Profiler()=0;
-		void start();
+		virtual void start()=0;
 		virtual void stop()=0;
-		std::string getID();
-		float getTime();
-		virtual void setOutputStream(OFStreamCSV*)=0;
+		virtual void setStrategyOutputStream(OFStreamCSV*)=0;
+		virtual void setSummingOutputStream(OFStreamCSV*)=0;
+		virtual void setChildOutputStream()=0;
 };
 
 #endif

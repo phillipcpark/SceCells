@@ -9,6 +9,8 @@ add_library(SceProfiling
 	CompoundingEventProfiler.cpp
 	StrategyProfiler.h
 	StrategyProfiler.cpp
+	CompositeProfiler.h
+	CompositeProfiler.cpp
 	ProfilingCoordinator.h
 	ProfilingCoordinator.cpp
 	CudaEventLifecycleHandler.h

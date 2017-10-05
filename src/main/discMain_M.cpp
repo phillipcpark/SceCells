@@ -147,8 +147,14 @@ int main(int argc, char* argv[]) {
 	// main simulation steps.
        bool FirstData=false ; 
 
+//MARK: profiling
+	ProfilingCoordinator profilingCoordinator;
+	SingleEventProfiler* primaryProfiler = new SingleEventProfiler("top-level", true);	
+	unsigned primaryIndex = profilingCoordinator.addProfiler(primaryProfiler);
+	profilingCoordinator.startProfiler(primaryIndex);
+		
 	//for (uint i = 0; i <= (uint) (mainPara.totalTimeSteps); i++) {
-	for (uint i = 0; i <= 9999; i++) {
+	for (uint i = 0; i <= 999; i++) {
 
 		if (i % mainPara.aniAuxVar == 0) {
 			std::cout << "substep 1 " << std::endl;
@@ -212,8 +218,8 @@ int main(int argc, char* argv[]) {
 		simuDomain.runAllLogic_M(mainPara.dt,mainPara.Damp_Coef,mainPara.InitTimeStage);  //Ali
 	}	
 
-	ProfilingCoordinator profiler;
-	profiler.end();
+	profilingCoordinator.stopProfiler(primaryIndex);
+	profilingCoordinator.end();
 
 	return 0;
 }

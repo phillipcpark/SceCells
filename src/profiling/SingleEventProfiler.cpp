@@ -7,14 +7,21 @@ SingleEventProfiler::~SingleEventProfiler() {
 	delete eventPacket;
 }
 
+void SingleEventProfiler::start() {
+	eventPacket = timer.start();	
+}
+
 void SingleEventProfiler::stop() {
 	if (eventPacket != NULL) {
 		time = timer.getElapsedTime(eventPacket);	
+		outputStream->write(time);
 		eventPacket = NULL;
 	}
 }
 
-void SingleEventProfiler::setOutputStream(OFStreamCSV* outputStream) {
+void SingleEventProfiler::setStrategyOutputStream(OFStreamCSV* outputStream) {}
+
+void SingleEventProfiler::setSummingOutputStream(OFStreamCSV* outputStream) {
 	this->outputStream = outputStream;
 	outputStream->write(identifier);
 

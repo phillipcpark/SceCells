@@ -6,13 +6,14 @@
 
 class StrategyProfiler: public Profiler {
 	protected:
-		ProfilingStrategy* strategy;
-		void setChildOutputStream();			
+		ProfilingStrategy* strategy;			
 	public:
 		StrategyProfiler(std::string identifier, ProfilingStrategy* strategy, bool rowEnd = false);
 		~StrategyProfiler();
+		void start();
 		void stop();
-		void setOutputStream(OFStreamCSV* outputStream);
-};
+		void setStrategyOutputStream(OFStreamCSV*);
+		void setSummingOutputStream(OFStreamCSV*);
+		void setChildOutputStream();};
 
 #endif

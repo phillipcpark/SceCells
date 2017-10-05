@@ -7,15 +7,3 @@ Profiler::Profiler(std::string identifier, bool rowEnd) {
 
 Profiler::~Profiler() {}
 
-void Profiler::start() {
-	eventPacket = timer.start();
-}
-
-std::string Profiler::getID() {
-	return identifier;
-}
-
-float Profiler::getTime() {
-	return time;
-}
-

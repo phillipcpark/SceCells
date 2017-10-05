@@ -7,9 +7,10 @@ class CompoundingEventProfiler: public Profiler {
 	public:	
 		CompoundingEventProfiler(std::string identifier, bool rowEnd = false);
 		~CompoundingEventProfiler();
+		void start();
 		void stop();
-		void setOutputStream(OFStreamCSV*);		
-	protected:
+		void setStrategyOutputStream(OFStreamCSV*);
+		void setSummingOutputStream(OFStreamCSV*);		
 		void setChildOutputStream();
 };
 

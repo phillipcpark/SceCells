@@ -12,6 +12,10 @@ StrategyProfiler::~StrategyProfiler() {
 	delete eventPacket;
 }
 
+void StrategyProfiler::start() {
+	eventPacket = timer.start();
+}
+
 void StrategyProfiler::stop() {
 	if (eventPacket != NULL) {
 		time = timer.getElapsedTime(eventPacket);
@@ -21,7 +25,7 @@ void StrategyProfiler::stop() {
 	}	
 }
 
-void StrategyProfiler::setOutputStream(OFStreamCSV* outputStream) {
+void StrategyProfiler::setStrategyOutputStream(OFStreamCSV* outputStream) {
 	this->outputStream = outputStream;
 	outputStream->write(identifier);
 
@@ -32,6 +36,8 @@ void StrategyProfiler::setOutputStream(OFStreamCSV* outputStream) {
 
 	setChildOutputStream();
 }	
+
+void StrategyProfiler::setSummingOutputStream(OFStreamCSV*) {}
 
 void StrategyProfiler::setChildOutputStream() {
 	strategy->setOutputStream(outputStream);
