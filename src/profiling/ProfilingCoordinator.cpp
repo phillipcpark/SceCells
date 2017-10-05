@@ -1,11 +1,12 @@
 #include "ProfilingCoordinator.h"
 
 std::vector<Profiler*> ProfilingCoordinator::profilers = std::vector<Profiler*>();
-OFStreamCSV* ProfilingCoordinator::outputStream = new OFStreamCSV();
+OFStreamCSV* ProfilingCoordinator::strategyOutputStream = new OFStreamCSV();
+//OFStreamCSV* ProfilingCoordinator::summedEventOutputStream = new OFStreamCSV();
 
 unsigned ProfilingCoordinator::addProfiler(Profiler* child) const {
 	ProfilingCoordinator::profilers.push_back(child);
-	child->setOutputStream(ProfilingCoordinator::outputStream);
+	child->setOutputStream(ProfilingCoordinator::strategyOutputStream);
 	unsigned index = ProfilingCoordinator::profilers.size() - 1;
 
 	return index;
@@ -20,7 +21,7 @@ void ProfilingCoordinator::stopProfiler(unsigned index) const {
 }
 
 void ProfilingCoordinator::end() {
-	ProfilingCoordinator::outputStream->close();
+	ProfilingCoordinator::strategyOutputStream->close();
 }
 
 float ProfilingCoordinator::getProfilerTime(unsigned index) const {

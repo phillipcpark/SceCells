@@ -653,18 +653,19 @@ SceCells::SceCells(SceNodes* nodesInput,
 //MARK: instantiate profiling events and store indices
 	ProfilingCoordinator coordinator;
 	unsigned profilerCount = 9;
-	CompoundingEventProfiler** profilers = new CompoundingEventProfiler*[profilerCount];
 
 	for (unsigned i = 0; i < profilerCount; i++) {
-		std::string id = "cell_logic_" + static_cast<ostringstream*>(&(ostringstream() << int(i + 1)))->str();
-
+		std::string id = "cell_logic_step_" + static_cast<ostringstream*>(&(ostringstream() << int(i + 1)))->str();
+		StrategyProfiler* profiler;
+		
+		//set rowEnd so output file creates new row
 		if (i == (profilerCount - 1))
-			profilers[i] = new CompoundingEventProfiler(id, true);
+			profiler = new StrategyProfiler(id, new AveragedBlockStrategy(), true);
  
 		else
-			profilers[i] = new CompoundingEventProfiler(id);	
+			profiler = new StrategyProfiler(id, new AveragedBlockStrategy());	
 	
-		unsigned index = coordinator.addProfiler(profilers[i]);
+		unsigned index = coordinator.addProfiler(profiler);
 	}
 }
 

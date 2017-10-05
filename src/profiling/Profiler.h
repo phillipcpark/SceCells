@@ -16,13 +16,14 @@ class Profiler {
 		bool rowEnd;
 
 		Profiler(std::string identifier, bool rowEnd = false);
+		virtual void setChildOutputStream()=0;
 	public:
 		virtual ~Profiler()=0;
 		void start();
 		virtual void stop()=0;
 		std::string getID();
 		float getTime();
-		void setOutputStream(OFStreamCSV*);
+		virtual void setOutputStream(OFStreamCSV*)=0;
 };
 
 #endif

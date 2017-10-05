@@ -8,6 +8,9 @@ class SingleEventProfiler: public Profiler {
 		SingleEventProfiler(std::string identifier, bool rowEnd = false);
 		~SingleEventProfiler();
 		void stop();
+		void setOutputStream(OFStreamCSV* outputStream);
+	protected:
+		void setChildOutputStream();
 };
 
 #endif

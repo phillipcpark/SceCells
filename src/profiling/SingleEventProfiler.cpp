@@ -14,4 +14,16 @@ void SingleEventProfiler::stop() {
 	}
 }
 
+void SingleEventProfiler::setOutputStream(OFStreamCSV* outputStream) {
+	this->outputStream = outputStream;
+	outputStream->write(identifier);
 
+	if (rowEnd)
+		outputStream->newRow();
+	else
+		outputStream->newColumn();
+
+	setChildOutputStream();
+}	
+
+void SingleEventProfiler::setChildOutputStream() {}

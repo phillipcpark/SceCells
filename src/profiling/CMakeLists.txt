@@ -7,11 +7,17 @@ add_library(SceProfiling
 	SingleEventProfiler.cpp
 	CompoundingEventProfiler.h
 	CompoundingEventProfiler.cpp
+	StrategyProfiler.h
+	StrategyProfiler.cpp
 	ProfilingCoordinator.h
 	ProfilingCoordinator.cpp
 	CudaEventLifecycleHandler.h
 	CudaEventLifecycleHandler.cpp
 	OFStreamCSV.h
 	OFStreamCSV.cpp
+	ProfilingStrategy.h
+	ProfilingStrategy.cpp
+	AveragedBlockStrategy.h
+	AveragedBlockStrategy.cpp
 )
 

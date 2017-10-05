@@ -8,7 +8,8 @@
 class ProfilingCoordinator {
 	private:
 		static std::vector<Profiler*> profilers;
-		static OFStreamCSV* outputStream;
+		static OFStreamCSV* strategyOutputStream;
+		//static OFStreamCSV* summedEventOutputStream;
 	public:
 		//DO NOT define destructor, otherwise, static member will be deallocated
 		unsigned addProfiler(Profiler*) const; //returns index of child profiler

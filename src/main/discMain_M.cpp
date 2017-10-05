@@ -17,6 +17,8 @@
 #include "../profiling/ProfilingCoordinator.h"
 #include "../profiling/SingleEventProfiler.h"
 #include "../profiling/CompoundingEventProfiler.h"
+#include "../profiling/StrategyProfiler.h"
+#include "../profiling/AveragedBlockStrategy.h"
 
 using namespace std;
 
@@ -145,26 +147,10 @@ int main(int argc, char* argv[]) {
 	// main simulation steps.
        bool FirstData=false ; 
 
-
-//MARK: profiling
-ProfilingCoordinator profiler;
-
-SingleEventProfiler* globalProfiler = new SingleEventProfiler("High-level");
-globalProfiler->start();
-
-//CompoundingEventProfiler* aniAuxProfiler = new CompoundingEventProfiler("AniAux");
-
-//static unsigned aniAuxProfilerIndex = profiler.addProfiler(aniAuxProfiler);
-//static unsigned mainProfilerIndex = profiler.addProfiler(globalProfiler);
-
-//profiler.startProfiler(mainProfilerIndex);
-
 	//for (uint i = 0; i <= (uint) (mainPara.totalTimeSteps); i++) {
 	for (uint i = 0; i <= 9999; i++) {
 
 		if (i % mainPara.aniAuxVar == 0) {
-			//profiler.startProfiler(aniAuxProfilerIndex);
-
 			std::cout << "substep 1 " << std::endl;
 			std::cout << "substep 1_confirm " << std::flush;
 
@@ -220,24 +206,14 @@ globalProfiler->start();
 			std::cout << "substep 6 " << std::endl;
 			aniFrame++;
 
-			//profiler.stopProfiler(aniAuxProfilerIndex);
 
 		}
 //Ali		simuDomain.runAllLogic_M(mainPara.dt);
 		simuDomain.runAllLogic_M(mainPara.dt,mainPara.Damp_Coef,mainPara.InitTimeStage);  //Ali
-	}
+	}	
 
-//profiler.stopProfiler(mainProfilerIndex);
-
-/*
-for (unsigned i = 0; i < 11; i++)
-std::cout << "\nTIME " << profiler.getProfilerID(i) << " " << profiler.getProfilerTime(i) << std::endl;;
-*/
-
-globalProfiler->stop();
-std::cout << "\n\n\nTOTAL TIME " << globalProfiler->getTime() << "\n\n";
-
-profiler.end();
+	ProfilingCoordinator profiler;
+	profiler.end();
 
 	return 0;
 }

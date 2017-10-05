@@ -3,7 +3,8 @@
 
 #include "SceNodes.h"
 #include "../profiling/ProfilingCoordinator.h"
-#include "../profiling/CompoundingEventProfiler.h"
+#include "../profiling/StrategyProfiler.h"
+#include "../profiling/AveragedBlockStrategy.h"
 
 #include <time.h>
 #include <thrust/tabulate.h>
