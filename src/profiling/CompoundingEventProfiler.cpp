@@ -12,14 +12,16 @@ void CompoundingEventProfiler::start() {
 	eventPacket = timer.start();
 }
 
-void CompoundingEventProfiler::stop() {
-	if (eventPacket != NULL) {	
+void CompoundingEventProfiler::stop() {	if (eventPacket != NULL) {	
 		float lastTimeBlock = timer.getElapsedTime(eventPacket);	
 		time += lastTimeBlock;	
-		outputStream->write(time);
-
 		eventPacket = NULL;
 	}
+}
+
+void CompoundingEventProfiler::end() {
+	outputStream->write(time);
+	outputStream->newColumn();
 }
 
 void CompoundingEventProfiler::setStrategyOutputStream(OFStreamCSV* outputStream) {}

@@ -1,6 +1,5 @@
 #include "AveragedBlockStrategy.h"
 
-
 #include <iostream>
 
 AveragedBlockStrategy::AveragedBlockStrategy() {
@@ -9,12 +8,12 @@ AveragedBlockStrategy::AveragedBlockStrategy() {
 	time = 0;
 }
 
-void AveragedBlockStrategy::stop(float time) {	
+void AveragedBlockStrategy::stop(float newTime) {	
 	currentCount++;
-	this->time += time;
+	time += newTime;
 
 	if (currentCount == blockSize) {
-		float average = this->time / (float)blockSize;
+		float average = time / (float)blockSize;
 		outputStream->write(average);
 
 		if (rowEnd)
@@ -23,7 +22,7 @@ void AveragedBlockStrategy::stop(float time) {
 			outputStream->newColumn();
 	
 		currentCount = 0;
-		this->time = 0;
+		time = 0;
 	}
 }
 

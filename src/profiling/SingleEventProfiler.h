@@ -9,6 +9,7 @@ class SingleEventProfiler: public Profiler {
 		~SingleEventProfiler();
 		void start();
 		void stop();
+		void end();
 		void setStrategyOutputStream(OFStreamCSV*);
 		void setSummingOutputStream(OFStreamCSV*);
 		void setChildOutputStream();

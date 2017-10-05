@@ -656,16 +656,21 @@ SceCells::SceCells(SceNodes* nodesInput,
 
 	for (unsigned i = 0; i < profilerCount; i++) {
 		std::string id = "cell_logic_step_" + static_cast<ostringstream*>(&(ostringstream() << int(i + 1)))->str();
-		StrategyProfiler* profiler;
-		
-		//set rowEnd so output file creates new row
-		if (i == (profilerCount - 1))
-			profiler = new StrategyProfiler(id, new AveragedBlockStrategy(), true);
- 
-		else
-			profiler = new StrategyProfiler(id, new AveragedBlockStrategy());	
 	
-		unsigned index = coordinator.addProfiler(profiler);
+		StrategyProfiler* strategyProfiler;	
+		CompoundingEventProfiler* summedProfiler = new CompoundingEventProfiler(id + "SUMMED");
+	
+		if (i == (profilerCount - 1))
+			strategyProfiler = new StrategyProfiler(id + "AVERAGED", new AveragedBlockStrategy(), true);
+
+		else
+			strategyProfiler = new StrategyProfiler(id + "AVERAGED", new AveragedBlockStrategy());
+	
+		CompositeProfiler* parent = new CompositeProfiler(id);
+		parent->addChild(strategyProfiler);
+		parent->addChild(summedProfiler);
+	
+		unsigned index = coordinator.addProfiler(parent);
 	}
 }
 

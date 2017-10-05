@@ -5,6 +5,8 @@
 #include "../profiling/ProfilingCoordinator.h"
 #include "../profiling/StrategyProfiler.h"
 #include "../profiling/AveragedBlockStrategy.h"
+#include "../profiling/CompoundingEventProfiler.h"
+#include "../profiling/CompositeProfiler.h"
 
 #include <time.h>
 #include <thrust/tabulate.h>

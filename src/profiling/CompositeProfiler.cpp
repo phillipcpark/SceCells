@@ -10,16 +10,22 @@ CompositeProfiler::~CompositeProfiler() {
 void CompositeProfiler::setStrategyOutputStream(OFStreamCSV* outputStream) {	
 	for (unsigned i = 0; i < profilers.size(); i++)
 		profilers.at(i)->setStrategyOutputStream(outputStream);
+
 }
 
 void CompositeProfiler::setSummingOutputStream(OFStreamCSV* outputStream) {
 	for (unsigned i = 0; i < profilers.size(); i++)
 		profilers.at(i)->setSummingOutputStream(outputStream);
+
 }
 
 void CompositeProfiler::setChildOutputStream() {
 	for (unsigned i = 0; i < profilers.size(); i++)
 		profilers.at(i)->setChildOutputStream();
+}
+
+void CompositeProfiler::addChild(Profiler* child) {
+	profilers.push_back(child);
 }
 
 void CompositeProfiler::start() {
@@ -30,4 +36,9 @@ void CompositeProfiler::start() {
 void CompositeProfiler::stop() {
 	for (unsigned i = 0; i < profilers.size(); i++)
 		profilers.at(i)->stop();
+}
+
+void CompositeProfiler::end() {
+	for (unsigned i = 0; i < profilers.size(); i++)
+		profilers.at(i)->end();
 }	

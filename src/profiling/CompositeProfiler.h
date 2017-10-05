@@ -17,6 +17,7 @@ class CompositeProfiler:public Profiler {
 		void addChild(Profiler*);
 		void start();
 		void stop();
+		void end();
 };
 
 #endif

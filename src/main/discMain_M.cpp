@@ -149,14 +149,20 @@ int main(int argc, char* argv[]) {
 
 //MARK: profiling
 	ProfilingCoordinator profilingCoordinator;
-	SingleEventProfiler* primaryProfiler = new SingleEventProfiler("top-level", true);	
+	SingleEventProfiler* primaryProfiler = new SingleEventProfiler("top-level");
+	CompoundingEventProfiler* aniAuxProfiler = new CompoundingEventProfiler("aniAux", true);
+	
 	unsigned primaryIndex = profilingCoordinator.addProfiler(primaryProfiler);
+	unsigned aniAuxIndex = profilingCoordinator.addProfiler(aniAuxProfiler);
+
 	profilingCoordinator.startProfiler(primaryIndex);
 		
 	//for (uint i = 0; i <= (uint) (mainPara.totalTimeSteps); i++) {
-	for (uint i = 0; i <= 999; i++) {
+	for (uint i = 0; i <= 9999; i++) {
 
 		if (i % mainPara.aniAuxVar == 0) {
+			profilingCoordinator.startProfiler(aniAuxIndex);		
+	
 			std::cout << "substep 1 " << std::endl;
 			std::cout << "substep 1_confirm " << std::flush;
 
@@ -212,7 +218,7 @@ int main(int argc, char* argv[]) {
 			std::cout << "substep 6 " << std::endl;
 			aniFrame++;
 
-
+			profilingCoordinator.stopProfiler(aniAuxIndex);
 		}
 //Ali		simuDomain.runAllLogic_M(mainPara.dt);
 		simuDomain.runAllLogic_M(mainPara.dt,mainPara.Damp_Coef,mainPara.InitTimeStage);  //Ali

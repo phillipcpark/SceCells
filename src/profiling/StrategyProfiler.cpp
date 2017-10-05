@@ -8,6 +8,7 @@ StrategyProfiler::StrategyProfiler(std::string identifier,
 }
 
 StrategyProfiler::~StrategyProfiler() {
+	//FIXME: strategy has virtual destructor
 	delete strategy;
 	delete eventPacket;
 }
@@ -24,6 +25,8 @@ void StrategyProfiler::stop() {
 		strategy->stop(time);
 	}	
 }
+
+void StrategyProfiler::end() {}
 
 void StrategyProfiler::setStrategyOutputStream(OFStreamCSV* outputStream) {
 	this->outputStream = outputStream;

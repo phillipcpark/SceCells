@@ -9,6 +9,7 @@ class CompoundingEventProfiler: public Profiler {
 		~CompoundingEventProfiler();
 		void start();
 		void stop();
+		void end();
 		void setStrategyOutputStream(OFStreamCSV*);
 		void setSummingOutputStream(OFStreamCSV*);		
 		void setChildOutputStream();

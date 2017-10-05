@@ -11,10 +11,15 @@ void SingleEventProfiler::start() {
 	eventPacket = timer.start();	
 }
 
-void SingleEventProfiler::stop() {
+void SingleEventProfiler::stop() {}
+
+void SingleEventProfiler::end() {
 	if (eventPacket != NULL) {
 		time = timer.getElapsedTime(eventPacket);	
 		outputStream->write(time);
+ 
+		outputStream->newColumn();
+
 		eventPacket = NULL;
 	}
 }

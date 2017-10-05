@@ -10,6 +10,7 @@ unsigned ProfilingCoordinator::addProfiler(Profiler* child) const {
 
 	child->setStrategyOutputStream(ProfilingCoordinator::strategyOutputStream);
 	child->setSummingOutputStream(ProfilingCoordinator::summingOutputStream);
+	child->setChildOutputStream();
 
 	unsigned index = ProfilingCoordinator::profilers.size() - 1;
 
@@ -25,6 +26,9 @@ void ProfilingCoordinator::stopProfiler(unsigned index) const {
 }
 
 void ProfilingCoordinator::end() {
+	for (unsigned i = 0; i < ProfilingCoordinator::profilers.size();i++)
+		ProfilingCoordinator::profilers.at(i)->end();
+
 	ProfilingCoordinator::strategyOutputStream->close();
 	ProfilingCoordinator::summingOutputStream->close();
 }

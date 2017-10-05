@@ -20,6 +20,7 @@ class Profiler {
 		virtual ~Profiler()=0;
 		virtual void start()=0;
 		virtual void stop()=0;
+		virtual void end()=0;
 		virtual void setStrategyOutputStream(OFStreamCSV*)=0;
 		virtual void setSummingOutputStream(OFStreamCSV*)=0;
 		virtual void setChildOutputStream()=0;
