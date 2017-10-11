@@ -158,7 +158,7 @@ int main(int argc, char* argv[]) {
 	profilingCoordinator.startProfiler(primaryIndex);
 		
 	//for (uint i = 0; i <= (uint) (mainPara.totalTimeSteps); i++) {
-	for (uint i = 0; i < 1000; i++) {
+	for (uint i = 0; i < 10000; i++) {
 		if (i % mainPara.aniAuxVar == 0) {
 			profilingCoordinator.startProfiler(aniAuxIndex);		
 	
@@ -225,6 +225,11 @@ int main(int argc, char* argv[]) {
 
 	profilingCoordinator.stopProfiler(primaryIndex);
 	profilingCoordinator.end();
+
+	std::vector<float> nodeProfilingTimes = simuDomain.getProfilingTimes();
+	std::cout << "\n\nNODE PROFILING TIMES\n";
+	for (unsigned i = 0; i < nodeProfilingTimes.size(); i++)
+		std::cout << "\n" << nodeProfilingTimes.at(i) << "\n";
 
 	return 0;
 }

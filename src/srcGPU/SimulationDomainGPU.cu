@@ -11,6 +11,13 @@ using namespace std;
 
 //#define DebugModeDomain
 
+
+//MARK: for quick profiling of SceNodes
+vector<float> SimulationDomainGPU::getProfilingTimes() {
+	return nodes.getProfilingTimes();
+}
+
+
 /**
  * Constructor.
  * reads values from config file.

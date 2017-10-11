@@ -929,6 +929,10 @@ class SceNodes {
 //MARK: profiling
 	unsigned profilingStartIndex;
 
+//MARK: profiling done with these variables until build is figured out
+	std::vector<float>profilingTimes;
+
+
 	NodeAllocPara_M allocPara_M;
 	SceMechPara_M mechPara_M;  
 	/**
@@ -1174,6 +1178,11 @@ public:
 	void setActiveCellCount(uint activeCellCount) {
 		allocPara_M.currentActiveCellCount = activeCellCount;
 	}
+
+//MARK: for quick profiling of SceNodes
+	std::vector<float> getProfilingTimes();
+
+
 };
 
 #endif /* SCENODES_H_ */

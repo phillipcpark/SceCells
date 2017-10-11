@@ -87,6 +87,7 @@ OutputIterator expand(InputIterator1 first1, InputIterator1 last1,
 
 SceNodes::SceNodes() {
 	readDomainPara();
+
 }
 
 void SceNodes::readDomainPara() {
@@ -331,6 +332,11 @@ SceNodes::SceNodes(uint maxTotalCellCount, uint maxAllNodePerCell) {
         std::cout << " I am in SceNodes constructor with short input which includes copyParaToGPUConstMem_M  function " << endl ; 
 	//std::cout << "at the end" << std::endl;
 	//std::cout.flush();
+
+
+	//MARK: quick profiling until build has been figured out
+	for (unsigned i = 0; i < 4; i++) 
+		this->profilingTimes.push_back(0);
 
 //MARK: profiling
 //NOTE: need to figure out why build settings won't link the profiler class definitions
@@ -2368,15 +2374,18 @@ void SceNodes::sceForcesDisc() {
 }
 
 void SceNodes::sceForcesDisc_M() {
-#ifdef DebugMode
-	cudaEvent_t start1, start2, start3, stop;
-	float elapsedTime1, elapsedTime2, elapsedTime3;
+//#ifdef DebugMode
+	cudaEvent_t start1, start2, start3, start4, stop;
+	float elapsedTime1, elapsedTime2, elapsedTime3, elapsedTime4;
 	cudaEventCreate(&start1);
 	cudaEventCreate(&start2);
 	cudaEventCreate(&start3);
+	cudaEventCreate(&start4);
 	cudaEventCreate(&stop);
 	cudaEventRecord(start1, 0);
-#endif
+//#endif
+
+	unsigned index = 0;
 
 /*	
 	ProfilingCoordinator coordinator;
@@ -2394,11 +2403,12 @@ void SceNodes::sceForcesDisc_M() {
 	index++;
 */
 
-#ifdef DebugMode
+
+//#ifdef DebugMode
 	cudaEventRecord(start2, 0);
 	cudaEventSynchronize(start2);
 	cudaEventElapsedTime(&elapsedTime1, start1, start2);
-#endif
+//#endif
 
 	
 //	coordinator.startProfiler(index);
@@ -2412,11 +2422,11 @@ void SceNodes::sceForcesDisc_M() {
 	index++;
 */
 
-#ifdef DebugMode
+//#ifdef DebugMode
 	cudaEventRecord(start3, 0);
 	cudaEventSynchronize(start3);
 	cudaEventElapsedTime(&elapsedTime2, start2, start3);
-#endif
+//#endif
 
 //	coordinator.startProfiler(index);
 
@@ -2424,6 +2434,10 @@ void SceNodes::sceForcesDisc_M() {
 	cout.flush();
 	processMembrAdh_M();
 
+	cudaEventRecord(start4, 0);
+	cudaEventSynchronize(start4);
+	cudaEventElapsedTime(&elapsedTime3, start3, start4);
+	
 /*
 	coordinator.stopProfiler(index);
 	index++;
@@ -2438,15 +2452,32 @@ void SceNodes::sceForcesDisc_M() {
 
 //	coordinator.stopProfiler(index);
 
-#ifdef DebugMode
+//#ifdef DebugMode
 	cudaEventRecord(stop, 0);
 	cudaEventSynchronize(stop);
-	cudaEventElapsedTime(&elapsedTime3, start3, stop);
+	cudaEventElapsedTime(&elapsedTime4, start4, stop);
 
+	this->profilingTimes.at(0) += elapsedTime1;
+	this->profilingTimes.at(1) += elapsedTime2;
+	this->profilingTimes.at(2) += elapsedTime3;
+	this->profilingTimes.at(3) += elapsedTime4;
+
+	cudaEventDestroy(start1);
+	cudaEventDestroy(start2);
+	cudaEventDestroy(start3);
+	cudaEventDestroy(start4);
+	cudaEventDestroy(stop);
+
+	/*
 	std::cout << "time spent in Node logic: " << elapsedTime1 << " "
 	<< elapsedTime2 << " " << elapsedTime3 << std::endl;
-#endif
+#endif*/
 }
+
+std::vector<float> SceNodes::getProfilingTimes() {
+	return this->profilingTimes;
+}
+
 
 double SceNodes::getMaxEffectiveRange() {
 	int simuTypeConfigValue =
