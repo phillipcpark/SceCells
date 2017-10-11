@@ -333,6 +333,8 @@ SceNodes::SceNodes(uint maxTotalCellCount, uint maxAllNodePerCell) {
 	//std::cout.flush();
 
 //MARK: profiling
+//NOTE: need to figure out why build settings won't link the profiler class definitions
+/*
 	ProfilingCoordinator coordinator;
 	unsigned profilerCount = 4;
 
@@ -357,6 +359,7 @@ SceNodes::SceNodes(uint maxTotalCellCount, uint maxAllNodePerCell) {
 		if (i == 0)
 			this->profilingStartIndex = index;
 	}
+*/
 }
 
 void SceNodes::copyParaToGPUConstMem() {
@@ -2374,56 +2377,66 @@ void SceNodes::sceForcesDisc_M() {
 	cudaEventCreate(&stop);
 	cudaEventRecord(start1, 0);
 #endif
-	
+
+/*	
 	ProfilingCoordinator coordinator;
 	unsigned index = this->profilingStartIndex;
 
 	coordinator.startProfiler(index);
+*/
 
 	cout << " confirm   --- 1 ---" << endl;
 	cout.flush();
 	prepareSceForceComputation_M();
 
+/*
 	coordinator.stopProfiler(index);
 	index++;
+*/
 
 #ifdef DebugMode
 	cudaEventRecord(start2, 0);
 	cudaEventSynchronize(start2);
 	cudaEventElapsedTime(&elapsedTime1, start1, start2);
 #endif
+
 	
-	coordinator.startProfiler(index);
+//	coordinator.startProfiler(index);
 
 	cout << "     --- 2 ---" << endl;
 	cout.flush();
 	applySceForcesDisc_M();
 
+/*
 	coordinator.stopProfiler(index);
 	index++;
+*/
 
 #ifdef DebugMode
 	cudaEventRecord(start3, 0);
 	cudaEventSynchronize(start3);
 	cudaEventElapsedTime(&elapsedTime2, start2, start3);
 #endif
-	coordinator.startProfiler(index);
+
+//	coordinator.startProfiler(index);
 
 	cout << "     --- 3 ---" << endl;
 	cout.flush();
 	processMembrAdh_M();
 
+/*
 	coordinator.stopProfiler(index);
 	index++;
 
 	coordinator.startProfiler(index);
+*/
 
 	cout << "     --- 4 ---" << endl;
 	cout.flush();
 
 	copyExtForces_M();//AAMIRI	
 
-	coordinator.stopProfiler(index);
+//	coordinator.stopProfiler(index);
 
 #ifdef DebugMode
 	cudaEventRecord(stop, 0);
