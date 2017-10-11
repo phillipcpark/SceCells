@@ -6,6 +6,9 @@
 #include "commonData.h"
 #include "NetworkInfo.h"
 
+#include "../profiling/CompoundingEventProfiler.h"
+#include "../profiling/ProfilingCoordinator.h"
+
 #include <sstream>
 #include <iomanip>
 #include <fstream>
@@ -67,6 +70,10 @@ class SimulationDomainGPU {
 	 * parameters used for stabilize the initial cell positions
 	 */
 	StabPara stabPara;
+
+
+	//PROFILING:
+	unsigned profilingStartIndex;
 
 	/**
 	 * reads memory related parameters.

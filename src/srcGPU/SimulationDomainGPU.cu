@@ -17,6 +17,15 @@ using namespace std;
  */
 SimulationDomainGPU::SimulationDomainGPU() {
 	readAllParameters();
+
+//MARK: profiling
+	CompoundingEventProfiler* nodeProfiler = new CompoundingEventProfiler("node_top_level");
+	CompoundingEventProfiler* cellProfiler = new CompoundingEventProfiler("cell_top_level");
+
+	ProfilingCoordinator coordinator = ProfilingCoordinator();
+	this->profilingStartIndex = coordinator.addProfiler(nodeProfiler);
+	coordinator.addProfiler(cellProfiler);
+
 }
 
 void SimulationDomainGPU::initializeNodes_M(std::vector<SceNodeType> &nodeTypes,
@@ -71,12 +80,8 @@ void SimulationDomainGPU::initializeNodes_M(std::vector<SceNodeType> &nodeTypes,
 	//}
 	//std::cout << std::endl;
 
-std::cout << "\n\n\nABOUT TO INITIALIZE CELLS\n\n\n";
-
 	cells = SceCells(&nodes, initActiveMembrNodeCounts,
 			initActiveIntnlNodeCounts, initGrowProgVec, InitTimeStage);  //Ali
-
-std::cout << "\n\n\nCELLS INITIALIZED\n\n\n";
 
 	//std::cout << "break point 5 " << std::endl;
 	//std::cout.flush();
@@ -130,7 +135,16 @@ void SimulationDomainGPU::runAllLogic_M(double dt, double Damp_Coef, double Init
 #endif
 	cout << "--- 1 ---" << endl;
 	cout.flush();
+
+ProfilingCoordinator coordinator;
+unsigned index = this->profilingStartIndex;
+coordinator.startProfiler(index);
+
 	nodes.sceForcesDisc_M();
+
+coordinator.stopProfiler(index);
+index++;
+
 	cout << "--- 2 ---" << endl;
 	cout.flush();
 #ifdef DebugModeDomain
@@ -140,7 +154,13 @@ void SimulationDomainGPU::runAllLogic_M(double dt, double Damp_Coef, double Init
 #endif
 	cout << "--- 3 ---" << endl;
 	cout.flush();
+
+coordinator.startProfiler(index);
+
 	cells.runAllCellLogicsDisc_M(dt,Damp_Coef,InitTimeStage);
+
+coordinator.stopProfiler(index);
+
 	cout << "--- 4 ---" << endl;
 	cout.flush();
 #ifdef DebugModeDomain

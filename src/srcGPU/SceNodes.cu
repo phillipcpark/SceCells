@@ -1,5 +1,12 @@
 #include "SceNodes.h"
 
+#include "../profiling/ProfilingCoordinator.h"
+#include "../profiling/StrategyProfiler.h"
+#include "../profiling/AveragedBlockStrategy.h"
+#include "../profiling/CompoundingEventProfiler.h"
+#include "../profiling/CompositeProfiler.h"
+
+
 __constant__ double sceInterPara[5];
 __constant__ double sceIntraPara[5];
 // parameter set for cells that are going to divide
@@ -324,6 +331,32 @@ SceNodes::SceNodes(uint maxTotalCellCount, uint maxAllNodePerCell) {
         std::cout << " I am in SceNodes constructor with short input which includes copyParaToGPUConstMem_M  function " << endl ; 
 	//std::cout << "at the end" << std::endl;
 	//std::cout.flush();
+
+//MARK: profiling
+	ProfilingCoordinator coordinator;
+	unsigned profilerCount = 4;
+
+	std::string profilerNames[] = {"prepareSceForceComputation(n1)", "applySceForcesDisc_M(n2)", "processMembraneAdh(n3)", "copyExtForces(n4)"};
+
+	for (unsigned i = 0; i < profilerCount; i++) {
+		StrategyProfiler* strategyProfiler;	
+		CompoundingEventProfiler* summedProfiler = new CompoundingEventProfiler(profilerNames[i]);
+	
+		if (i == (profilerCount - 1))
+			strategyProfiler = new StrategyProfiler(profilerNames[i], new AveragedBlockStrategy(), true);
+
+		else
+			strategyProfiler = new StrategyProfiler(profilerNames[i], new AveragedBlockStrategy());
+	
+		CompositeProfiler* parent = new CompositeProfiler(profilerNames[i]);
+		parent->addChild(strategyProfiler);
+		parent->addChild(summedProfiler);
+	
+		unsigned index = coordinator.addProfiler(parent);
+
+		if (i == 0)
+			this->profilingStartIndex = index;
+	}
 }
 
 void SceNodes::copyParaToGPUConstMem() {
@@ -2341,34 +2374,56 @@ void SceNodes::sceForcesDisc_M() {
 	cudaEventCreate(&stop);
 	cudaEventRecord(start1, 0);
 #endif
+	
+	ProfilingCoordinator coordinator;
+	unsigned index = this->profilingStartIndex;
+
+	coordinator.startProfiler(index);
+
 	cout << " confirm   --- 1 ---" << endl;
 	cout.flush();
 	prepareSceForceComputation_M();
+
+	coordinator.stopProfiler(index);
+	index++;
 
 #ifdef DebugMode
 	cudaEventRecord(start2, 0);
 	cudaEventSynchronize(start2);
 	cudaEventElapsedTime(&elapsedTime1, start1, start2);
 #endif
+	
+	coordinator.startProfiler(index);
+
 	cout << "     --- 2 ---" << endl;
 	cout.flush();
 	applySceForcesDisc_M();
 
+	coordinator.stopProfiler(index);
+	index++;
 
 #ifdef DebugMode
 	cudaEventRecord(start3, 0);
 	cudaEventSynchronize(start3);
 	cudaEventElapsedTime(&elapsedTime2, start2, start3);
 #endif
+	coordinator.startProfiler(index);
+
 	cout << "     --- 3 ---" << endl;
 	cout.flush();
 	processMembrAdh_M();
+
+	coordinator.stopProfiler(index);
+	index++;
+
+	coordinator.startProfiler(index);
 
 	cout << "     --- 4 ---" << endl;
 	cout.flush();
 
 	copyExtForces_M();//AAMIRI	
 
+	coordinator.stopProfiler(index);
 
 #ifdef DebugMode
 	cudaEventRecord(stop, 0);

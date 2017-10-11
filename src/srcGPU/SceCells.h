@@ -2457,8 +2457,8 @@ class SceCells {
 
 	uint totalNodeCountForActiveCells;
 
-//MARK: profiling memebers
-	std::vector<unsigned> profilingIndices;
+//MARK: profiling
+	unsigned profilingStartIndex;
 
 	double dt;
         double Damp_Coef ;   //Ali

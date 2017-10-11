@@ -149,17 +149,16 @@ int main(int argc, char* argv[]) {
 
 //MARK: profiling
 	ProfilingCoordinator profilingCoordinator;
-	SingleEventProfiler* primaryProfiler = new SingleEventProfiler("top-level");
-	CompoundingEventProfiler* aniAuxProfiler = new CompoundingEventProfiler("aniAux", true);
-	
-	unsigned primaryIndex = profilingCoordinator.addProfiler(primaryProfiler);
+	CompoundingEventProfiler* aniAuxProfiler = new CompoundingEventProfiler("aniAux");
+	SingleEventProfiler* primaryProfiler = new SingleEventProfiler("top-level", true);
+
 	unsigned aniAuxIndex = profilingCoordinator.addProfiler(aniAuxProfiler);
+	unsigned primaryIndex = profilingCoordinator.addProfiler(primaryProfiler);
 
 	profilingCoordinator.startProfiler(primaryIndex);
 		
 	//for (uint i = 0; i <= (uint) (mainPara.totalTimeSteps); i++) {
-	for (uint i = 0; i <= 9999; i++) {
-
+	for (uint i = 0; i < 1000; i++) {
 		if (i % mainPara.aniAuxVar == 0) {
 			profilingCoordinator.startProfiler(aniAuxIndex);		
 	

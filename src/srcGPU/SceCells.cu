@@ -654,23 +654,27 @@ SceCells::SceCells(SceNodes* nodesInput,
 	ProfilingCoordinator coordinator;
 	unsigned profilerCount = 9;
 
+	std::string profilerNames[] = {"prepareGrowthAuxData(c1)", "applySceCellDisc(c2)", "computeCenter(c3)", "applyMembrForce(c4)", "randGrowth(c5)",
+                                       "divide2d(c6)", "distributeGrowthProgress(c7)", "findTanNormal_and_moveComponents(c8)", "membrGrowth(c9)"};
+
 	for (unsigned i = 0; i < profilerCount; i++) {
-		std::string id = "cell_logic_step_" + static_cast<ostringstream*>(&(ostringstream() << int(i + 1)))->str();
-	
 		StrategyProfiler* strategyProfiler;	
-		CompoundingEventProfiler* summedProfiler = new CompoundingEventProfiler(id + "SUMMED");
+		CompoundingEventProfiler* summedProfiler = new CompoundingEventProfiler(profilerNames[i]);
 	
 		if (i == (profilerCount - 1))
-			strategyProfiler = new StrategyProfiler(id + "AVERAGED", new AveragedBlockStrategy(), true);
+			strategyProfiler = new StrategyProfiler(profilerNames[i], new AveragedBlockStrategy(), true);
 
 		else
-			strategyProfiler = new StrategyProfiler(id + "AVERAGED", new AveragedBlockStrategy());
+			strategyProfiler = new StrategyProfiler(profilerNames[i], new AveragedBlockStrategy());
 	
-		CompositeProfiler* parent = new CompositeProfiler(id);
+		CompositeProfiler* parent = new CompositeProfiler(profilerNames[i]);
 		parent->addChild(strategyProfiler);
 		parent->addChild(summedProfiler);
 	
 		unsigned index = coordinator.addProfiler(parent);
+
+		if (i == 0)
+			this->profilingStartIndex = index;
 	}
 }
 
@@ -1397,7 +1401,7 @@ void SceCells::runAllCellLogicsDisc_M(double dt, double Damp_Coef, double InitTi
 
 //MARK: profiling
 ProfilingCoordinator profilingCoordinator;
-unsigned index = 0;
+unsigned index = this->profilingStartIndex;
 	
 	std::cout << "     *** 1 ***" << endl;
 	std::cout.flush();

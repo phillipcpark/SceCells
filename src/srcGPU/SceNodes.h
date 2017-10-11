@@ -926,6 +926,9 @@ class SceNodes {
 	NodeAuxVecs auxVecs;
 	ControlPara controlPara;
 
+//MARK: profiling
+	unsigned profilingStartIndex;
+
 	NodeAllocPara_M allocPara_M;
 	SceMechPara_M mechPara_M;  
 	/**
