@@ -1467,6 +1467,9 @@ void calAndAddInter_M(double& xPos, double& yPos, double& xPos2, double& yPos2,
 		double& xRes, double& yRes) {
 	double linkLength = computeDist2D(xPos, yPos, xPos2, yPos2);
 	double forceValue;
+	
+	//Phillip: register for constants?
+
 	if (linkLength > sceInterBPara_M[4]) {
 		forceValue = 0;
 	} else {
@@ -2231,6 +2234,9 @@ void SceNodes::applySceForcesDisc() {
 }
 
 void SceNodes::applySceForcesDisc_M() {
+
+//MARK: auxVecs and infoVecs are structs containing several device vectors
+
 	uint* valueAddress = thrust::raw_pointer_cast(
 			&auxVecs.bucketValuesIncludingNeighbor[0]);
 	double* nodeLocXAddress = thrust::raw_pointer_cast(&infoVecs.nodeLocX[0]);
@@ -2474,10 +2480,10 @@ void SceNodes::sceForcesDisc_M() {
 #endif*/
 }
 
+//MARK: this is method is for short-term use only, until header file is able to resolve issue finding profiling definitions
 std::vector<float> SceNodes::getProfilingTimes() {
 	return this->profilingTimes;
 }
-
 
 double SceNodes::getMaxEffectiveRange() {
 	int simuTypeConfigValue =
