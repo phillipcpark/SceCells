@@ -14,3 +14,5 @@ CUDA_ADD_LIBRARY(SceGPU
 	SimulationDomainGPU.cu
 )
 
+add_dependencies(SceGPU SceProfiling)
+target_link_libraries(SceGPU SceProfiling)

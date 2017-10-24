@@ -33,6 +33,13 @@
 
 #include <ctime>
 
+#include "../profiling/ProfilingCoordinator.h"
+#include "../profiling/StrategyProfiler.h"
+#include "../profiling/AveragedBlockStrategy.h"
+#include "../profiling/CompoundingEventProfiler.h"
+#include "../profiling/CompositeProfiler.h"
+
+
 // include google test files in order to test private functions.
 #include "gtest/gtest_prod.h"
 #include "SceNodes.h"

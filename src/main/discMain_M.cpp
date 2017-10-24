@@ -158,7 +158,7 @@ int main(int argc, char* argv[]) {
 	profilingCoordinator.startProfiler(primaryIndex);
 		
 	//for (uint i = 0; i <= (uint) (mainPara.totalTimeSteps); i++) {
-	for (uint i = 0; i < 10000; i++) {
+	for (uint i = 0; i < 1000; i++) {
 
 //MARK: higher-count cell sets require more time here; profile constituent elements
 

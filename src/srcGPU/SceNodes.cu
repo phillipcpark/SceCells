@@ -340,7 +340,7 @@ SceNodes::SceNodes(uint maxTotalCellCount, uint maxAllNodePerCell) {
 
 //MARK: profiling
 //NOTE: need to figure out why build settings won't link the profiler class definitions
-/*
+
 	ProfilingCoordinator coordinator;
 	unsigned profilerCount = 4;
 
@@ -365,7 +365,6 @@ SceNodes::SceNodes(uint maxTotalCellCount, uint maxAllNodePerCell) {
 		if (i == 0)
 			this->profilingStartIndex = index;
 	}
-*/
 }
 
 void SceNodes::copyParaToGPUConstMem() {

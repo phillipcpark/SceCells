@@ -4811,7 +4811,7 @@ void SceCells::applySceCellDisc_M() {
 											DivideFunctor(maxAllNodePerCell))),
 							nodes->getInfoVecs().nodeVelX.begin(),
 							nodes->getInfoVecs().nodeVelY.begin()))
-					+ totalNodeCountForActiveCells,
+					+ totalNodeCountForActiveCells, //iterator end
 			thrust::make_zip_iterator(
 					thrust::make_tuple(nodes->getInfoVecs().nodeVelX.begin(),
 							   nodes->getInfoVecs().nodeVelY.begin(),
