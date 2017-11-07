@@ -188,9 +188,6 @@ public:
 
 	void processT1Info(int maxStepTraceBack, CellsStatsData &polyData);
 
-	//MARK: for quick profiling, until SceNodes linking is figured out
-	vector<float> getProfilingTimes();
-
 };
 
 #endif

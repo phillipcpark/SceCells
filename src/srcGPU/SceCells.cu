@@ -4751,6 +4751,121 @@ __device__ double calBendMulti_Mitotic(double& angle, uint activeMembrCt, double
 	}
 }
 
+//Phillip: CUDA kernel
+__global__
+void applySceCellDisc_M_Transform(double* nodeLocXAddr, double* nodeLocYAddr, bool* nodeIsActiveAddr,
+					uint totalNodeCountForActiveCells, uint maxAllNodePerCell, uint maxMemNodePerCell, double grthPrgrCriVal_M,
+					uint* activeMembrNodeCounts, uint* activeIntnlNodeCounts, double* growthProgress,
+					double* nodeVelX, double* nodeVelY, double* nodeF_MI_M_x, double* nodeF_MI_M_y) {
+
+	int threadStartIndex = blockDim.x * blockIdx.x + threadIdx.x;
+	int stride = blockDim.x * gridDim.x;
+	int vectorLoadWidth = 2;
+	
+	for (int i = threadStartIndex; i < totalNodeCountForActiveCells / vectorLoadWidth; i += stride) {
+		uint cellRank = i / maxAllNodePerCell;
+		uint nodeRank = i % maxAllNodePerCell;
+
+		uint activeMembrCount = activeMembrNodeCounts[cellRank];
+		uint activeIntnlCount = activeIntnlNodeCounts[cellRank];	
+		double progress = growthProgress[cellRank]; 	
+		double oriVelX = nodeVelX[i];
+		double oriVelY = nodeVelY[i];        
+
+		double F_MI_M_x = 0;
+		double F_MI_M_y = 0;
+		uint index = cellRank * maxAllNodePerCell + nodeRank;
+ 
+		if (nodeIsActiveAddr[index] == false) {
+			nodeF_MI_M_x[i] = 0;
+			nodeF_MI_M_y[i] = 0;
+		
+			break;
+		}
+
+		uint intnlIndxMemBegin = cellRank * maxAllNodePerCell;
+		uint intnlIndxBegin = intnlIndxMemBegin + maxMemNodePerCell;
+		uint intnlIndxEnd = intnlIndxBegin + activeIntnlCount;
+
+		double nodeX = nodeLocXAddr[index];
+		double nodeY = nodeLocYAddr[index];
+		double nodeXOther;
+		double nodeYOther;
+
+		//check if node is on membrane
+		if (nodeRank < maxMemNodePerCell) {		
+					
+			for (uint j = intnlIndxBegin; j < intnlIndxEnd; j++) {
+				nodeXOther = nodeLocXAddr[j];
+				nodeYOther = nodeLocYAddr[j]; 
+					
+				calAndAddIB_M2(nodeX, nodeY, nodeXOther, nodeYOther, progress,
+						oriVelX, oriVelY, F_MI_M_x, F_MI_M_y, grthPrgrCriVal_M);
+			}				
+		}
+
+		//node is internal
+		else {
+
+			for (uint j = intnlIndxMemBegin; j < intnlIndxMemBegin + activeMembrCount; j++) {
+				nodeXOther = nodeLocXAddr[j];
+				nodeYOther = nodeLocYAddr[j];
+
+				calAndAddIB_M(nodeX, nodeY, nodeXOther, nodeYOther, progress,
+						oriVelX, oriVelY, grthPrgrCriVal_M);
+			}
+
+			for (uint j = intnlIndxBegin; j < intnlIndxEnd; j++) {
+				if (j == index) 
+					continue;
+				
+				nodeXOther = nodeLocXAddr[j];
+				nodeYOther = nodeLocYAddr[j];
+				calAndAddII_M(nodeX, nodeY, nodeXOther, nodeYOther, progress,
+						oriVelX, oriVelY, grthPrgrCriVal_M);
+			}
+		}
+
+		//write output
+		nodeVelX[i] = oriVelX;
+		nodeVelY[i] = oriVelY;
+		nodeF_MI_M_x[i] = F_MI_M_x;
+		nodeF_MI_M_y[i] = F_MI_M_y;	
+	}
+} 
+
+//Phillip: modified version invoked CUDA kernel
+void SceCells::applySceCellDisc_M() {
+
+	//constructor args in original functors
+	double* nodeLocXAddr = thrust::raw_pointer_cast(nodes->getInfoVecs().nodeLocX.data());
+	double* nodeLocYAddr = thrust::raw_pointer_cast(nodes->getInfoVecs().nodeLocY.data());
+	bool* nodeIsActiveAddr = thrust::raw_pointer_cast(nodes->getInfoVecs().nodeIsActive.data());
+
+	totalNodeCountForActiveCells = allocPara_m.currentActiveCellCount * allocPara_m.maxAllNodePerCell; //iteration bound in original
+	uint maxAllNodePerCell = allocPara_m.maxAllNodePerCell; //permutation iterator divisor/modulus in original
+	uint maxMemNodePerCell = allocPara_m.maxMembrNodePerCell;
+	double grthPrgrCriVal_M = growthAuxData.grthProgrEndCPU - growthAuxData.prolifDecay * 
+					(growthAuxData.grthProgrEndCPU - growthAuxData.grthPrgrCriVal_M_Ori);
+
+	//values operated each iteration in original
+	uint* activeMembrNodeCounts = thrust::raw_pointer_cast(cellInfoVecs.activeMembrNodeCounts.data());
+	uint* activeIntnlNodeCounts = thrust::raw_pointer_cast(cellInfoVecs.activeIntnlNodeCounts.data());
+	double* growthProgress = thrust::raw_pointer_cast(cellInfoVecs.growthProgress.data());
+	double* nodeVelX = thrust::raw_pointer_cast(nodes->getInfoVecs().nodeVelX.data());
+	double* nodeVelY = thrust::raw_pointer_cast(nodes->getInfoVecs().nodeVelY.data());
+
+	//kernel result locations
+	double* nodeF_MI_M_x = thrust::raw_pointer_cast(nodes->getInfoVecs().nodeF_MI_M_x.data());
+	double* nodeF_MI_M_y = thrust::raw_pointer_cast(nodes->getInfoVecs().nodeF_MI_M_y.data());
+
+	applySceCellDisc_M_Transform<<<16, 256>>> (nodeLocXAddr, nodeLocYAddr, nodeIsActiveAddr,
+						totalNodeCountForActiveCells, maxAllNodePerCell, maxMemNodePerCell, grthPrgrCriVal_M,
+							activeMembrNodeCounts, activeIntnlNodeCounts, growthProgress,
+								nodeVelX, nodeVelY, nodeF_MI_M_x, nodeF_MI_M_y);																
+}
+
+/*
 void SceCells::applySceCellDisc_M() {
 	totalNodeCountForActiveCells = allocPara_m.currentActiveCellCount
 			* allocPara_m.maxAllNodePerCell;
@@ -4820,6 +4935,7 @@ void SceCells::applySceCellDisc_M() {
 			AddSceCellForce(maxAllNodePerCell, maxMemNodePerCell, nodeLocXAddr,
 					nodeLocYAddr, nodeIsActiveAddr, grthPrgrCriVal_M));
 }
+*/
 
 __device__
 void calAndAddIB_M(double& xPos, double& yPos, double& xPos2, double& yPos2,

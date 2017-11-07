@@ -937,10 +937,6 @@ class SceNodes {
 //MARK: profiling
 	unsigned profilingStartIndex;
 
-//MARK: profiling done with these variables until build is figured out
-	std::vector<float>profilingTimes;
-
-
 	NodeAllocPara_M allocPara_M;
 	SceMechPara_M mechPara_M;  
 	/**
