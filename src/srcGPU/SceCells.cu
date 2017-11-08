@@ -4758,39 +4758,49 @@ void applySceCellDisc_M_Transform(double* nodeLocXAddr, double* nodeLocYAddr, bo
 					uint* activeMembrNodeCounts, uint* activeIntnlNodeCounts, double* growthProgress,
 					double* nodeVelX, double* nodeVelY, double* nodeF_MI_M_x, double* nodeF_MI_M_y) {
 
+	//FIXME: copy frequently referenced arguments to thread memory here 
 	int threadStartIndex = blockDim.x * blockIdx.x + threadIdx.x;
 	int stride = blockDim.x * gridDim.x;
 	int vectorLoadWidth = 2;
-	
+
 	for (int i = threadStartIndex; i < totalNodeCountForActiveCells / vectorLoadWidth; i += stride) {
-		uint cellRank = i / maxAllNodePerCell;
-		uint nodeRank = i % maxAllNodePerCell;
 
-		uint activeMembrCount = activeMembrNodeCounts[cellRank];
-		uint activeIntnlCount = activeIntnlNodeCounts[cellRank];	
-		double progress = growthProgress[cellRank]; 	
-		double oriVelX = nodeVelX[i];
-		double oriVelY = nodeVelY[i];        
+		uint loadVecStartIdx = i * vectorLoadWidth;
+		uint2 cellRank = make_uint2(loadVecStartIdx / maxAllNodePerCell, (loadVecStartIdx + 1) / maxAllNodePerCell);
+		uint2 nodeRank = make_uint2(loadVecStartIdx % maxAllNodePerCell, (loadVecStartIdx + 1) % maxAllNodePerCell);
 
-		double F_MI_M_x = 0;
-		double F_MI_M_y = 0;
-		uint index = cellRank * maxAllNodePerCell + nodeRank;
- 
+		uint2 activeMembrCount = make_uint2(activeMembrNodeCounts[cellRank.x], activeMembrNodeCounts[cellRank.y]);
+		uint2 activeIntnlCount = make_uint2(activeIntnlNodeCounts[cellRank.x], activeIntnlNodeCounts[cellRank.y]);	
+		double2 progress = make_double2(growthProgress[cellRank.x], growthProgress[cellRank.y]); 
+	
+		double2 oriVelX = reinterpret_cast<double2*>(nodeVelX + loadVecStartIdx);
+		double2 oriVelY = reinterpret_cast<double2*>(nodeVelY + loadVecStartIdx);        
+
+		double2 F_MI_M_x = make_double2(0, 0);
+		double2 F_MI_M_y = make_double2(0, 0);
+
+		uint2 index = make_uint2(cellRank.x * maxAllNodePerCell + nodeRank.x, cellRank.y * maxAllNodePerCell + nodeRank.y);
+
+		//FIXME: how to handle case where first index of vector is true, but second is false? 
 		if (nodeIsActiveAddr[index] == false) {
 			nodeF_MI_M_x[i] = 0;
 			nodeF_MI_M_y[i] = 0;
-		
+	
+			//loop doesn't resume, just need to handle the elements in the current vector	
 			break;
 		}
 
-		uint intnlIndxMemBegin = cellRank * maxAllNodePerCell;
-		uint intnlIndxBegin = intnlIndxMemBegin + maxMemNodePerCell;
-		uint intnlIndxEnd = intnlIndxBegin + activeIntnlCount;
+		uint2 intnlIndxMemBegin = make_uint2(cellRank.x * maxAllNodePerCell, cellRank.y * maxAllNodePerCell);
+		uint2 intnlIndxBegin = make_uint2(intnlIndxMemBegin.x + maxMemNodePerCell, intnlIndxMemBegin.y + maxMemNodePerCell);
+		uint2 intnlIndxEnd = make_uint2(intnlIndxBegin.x + activeIntnlCount, intnlIndx.Begin.y + activeIntnlCount);
 
-		double nodeX = nodeLocXAddr[index];
-		double nodeY = nodeLocYAddr[index];
-		double nodeXOther;
-		double nodeYOther;
+		double2 nodeX = make_double2(nodeLocXAddr[index.x], nodeLocXAddr[index.y]);
+		double2 nodeY = make_double2(nodeLocYAddr[index.x], nodeLocYAddr[index.y]);
+		double2 nodeXOther;
+		double2 nodeYOther;
+
+		//FIXME: restructure to minimize divergence? warps only diverge at edge indices between membran and intra-cell nodes,
+		//		perhaps, the stride length can be set up so that each warp executes the same flow?
 
 		//check if node is on membrane
 		if (nodeRank < maxMemNodePerCell) {		
