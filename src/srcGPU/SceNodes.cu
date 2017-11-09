@@ -2222,19 +2222,12 @@ void SceNodes::applySceForcesDisc() {
 }
 
 void SceNodes::applySceForcesDisc_M() {
-
-//MARK: auxVecs and infoVecs are structs containing several device vectors
-
-	uint* valueAddress = thrust::raw_pointer_cast(
-			&auxVecs.bucketValuesIncludingNeighbor[0]);
+	uint* valueAddress = thrust::raw_pointer_cast(&auxVecs.bucketValuesIncludingNeighbor[0]);
 	double* nodeLocXAddress = thrust::raw_pointer_cast(&infoVecs.nodeLocX[0]);
 	double* nodeLocYAddress = thrust::raw_pointer_cast(&infoVecs.nodeLocY[0]);
-	int* nodeAdhIdxAddress = thrust::raw_pointer_cast(
-			&infoVecs.nodeAdhereIndex[0]);
-	int* membrIntnlAddress = thrust::raw_pointer_cast(
-			&infoVecs.membrIntnlIndex[0]);
-	double* nodeGrowProAddr = thrust::raw_pointer_cast(
-			&infoVecs.nodeGrowPro[0]);
+	int* nodeAdhIdxAddress = thrust::raw_pointer_cast(&infoVecs.nodeAdhereIndex[0]);
+	int* membrIntnlAddress = thrust::raw_pointer_cast(&infoVecs.membrIntnlIndex[0]);
+	double* nodeGrowProAddr = thrust::raw_pointer_cast(&infoVecs.nodeGrowPro[0]);
 
 	thrust::transform(
 			make_zip_iterator(
