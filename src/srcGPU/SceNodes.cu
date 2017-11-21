@@ -1451,47 +1451,53 @@ void calAndAddIntraB_M(double& xPos, double& yPos, double& xPos2, double& yPos2,
 }
 
 __device__
-void calAndAddInter_M(double& xPos, double& yPos, double& xPos2, double& yPos2,
-		double& xRes, double& yRes) {
+bool calAndAddInter_M(double& xPos, double& yPos, double& xPos2, double& yPos2, double& xRes, double& yRes) {
 	double linkLength = computeDist2D(xPos, yPos, xPos2, yPos2);
 	double forceValue;
 	
-	//Phillip: register for constants?
-
-	if (linkLength > sceInterBPara_M[4]) {
+	if (linkLength > sceInterBPara_M[4]) { 
 		forceValue = 0;
-	} else {
-		forceValue = -sceInterBPara_M[0] / sceInterBPara_M[2]
-				* exp(-linkLength / sceInterBPara_M[2])
-				+ sceInterBPara_M[1] / sceInterBPara_M[3]
-						* exp(-linkLength / sceInterBPara_M[3]);
+		return false;
+	}
+		
+	else {
+		//FIXME: maybe some of these values can be pre-computed?
+		forceValue = -sceInterBPara_M[0] / sceInterBPara_M[2] * exp(-linkLength / sceInterBPara_M[2])
+				+ sceInterBPara_M[1] / sceInterBPara_M[3] * exp(-linkLength / sceInterBPara_M[3]);
+
+		//FIXME: how often is forceValue > 0, in spite of buckets design?
 		if (forceValue > 0) {
 			forceValue = 0;
+			return false;
 		}
 	}
 	xRes = xRes + forceValue * (xPos2 - xPos) / linkLength;
 	yRes = yRes + forceValue * (yPos2 - yPos) / linkLength;
+	return true;
 }
+
 //Ali
 __device__
-void calAndAddInter_M2(double& xPos, double& yPos, double& xPos2, double& yPos2,
-		double& xRes, double& yRes) {
+bool calAndAddInter_M2(double& xPos, double& yPos, double& xPos2, double& yPos2, double& xRes, double& yRes) {
 	double linkLength = computeDist2D(xPos, yPos, xPos2, yPos2);
 	double forceValue;
+
 	if (linkLength > sceInterBPara_Jones_M[2]) {
 		forceValue = 0;
-	} else {
-		forceValue =24*sceInterBPara_Jones_M[0]/linkLength*pow(sceInterBPara_Jones_M[1]/linkLength,6)*
-                                                          ( 1.0-2 *pow(sceInterBPara_Jones_M[1]/linkLength,6) ) ;
-			
-				
-						
+		return false;
+	}
+	else { 
+		forceValue = 24 * sceInterBPara_Jones_M[0] / linkLength * pow(sceInterBPara_Jones_M[1] / linkLength, 6)
+				* (1.0 - 2 * pow(sceInterBPara_Jones_M[1] / linkLength, 6));							
 		if (forceValue > 0) {
 			forceValue = 0;
+			return false;
 		}
 	}
 	xRes = xRes + forceValue * (xPos2 - xPos) / linkLength;
 	yRes = yRes + forceValue * (yPos2 - yPos) / linkLength;
+
+	return true;
 }
 //Ali
 
@@ -2221,6 +2227,104 @@ void SceNodes::applySceForcesDisc() {
 					nodeLocZAddress, nodeGrowProAddr));
 }
 
+__global__ void applySceForcesDisc_M_transform(uint* valueAddr, double* nodeLocXAddr, double* nodeLocYAddr,
+						int* nodeAdhIndex, int* membrIntnlAddr, double* nodeGrowProgAddr,
+						uint* bucketVal, uint* bucketKeys, uint* keyStart, uint* keyEnd, 
+						double* nodeVelX, double* nodeVelY, unsigned inputSize
+						, int* failed) {
+
+	unsigned threadIndex = blockIdx.x * blockDim.x + threadIdx.x;
+	unsigned stride = gridDim.x * blockDim.x; 
+
+	//Phillip: moved outside of loop to reduce unnecessary reads from constant memory
+	bool Lennard_Jones = Is_Lennard_Jones(); 
+	
+	for (unsigned i = threadIndex; i < inputSize; i+= stride) {	
+		double xRes = 0.0;
+		double yRes = 0.0;
+
+		uint keyIndex = bucketKeys[i];
+		uint begin = keyStart[keyIndex];
+		uint end = keyEnd[keyIndex];
+
+		uint myValue = bucketVal[i];
+		double xPos = nodeLocXAddr[myValue];
+		double yPos = nodeLocYAddr[myValue];
+
+		nodeAdhIndex[myValue] = -1;
+ 		bool isSuccess = false;
+		uint index;
+		double dist;
+
+		for (uint j = begin; j < end; j++) {
+			uint nodeRankOther = valueAddr[j];
+
+			if (nodeRankOther == myValue) 
+				continue;
+	
+			if (bothMembrDiffCell(myValue, nodeRankOther)) {	
+				if (Lennard_Jones) {
+					if (!calAndAddInter_M2(xPos, yPos, nodeLocXAddr[nodeRankOther], nodeLocYAddr[nodeRankOther], xRes, yRes))
+						failed[i]++;
+				}
+				else { 	                  
+					if (!calAndAddInter_M(xPos, yPos, nodeLocXAddr[nodeRankOther], nodeLocYAddr[nodeRankOther], xRes, yRes))
+						failed[i]++;
+				}
+				attemptToAdhere(isSuccess, index, dist, nodeRankOther, xPos, yPos, nodeLocXAddr[nodeRankOther], nodeLocYAddr[nodeRankOther]);	
+			}
+
+			if (isSuccess)
+				nodeAdhIndex[myValue] = index;
+	
+			nodeVelX[myValue] = xRes;
+			nodeVelY[myValue] = yRes;
+		}
+	}
+}
+
+//Phillip: alternate version invokes CUDA kernel
+void SceNodes::applySceForcesDisc_M() {
+
+	//constructor args for original transform functor
+	uint* valueAddress = thrust::raw_pointer_cast(auxVecs.bucketValuesIncludingNeighbor.data());
+	double* nodeLocXAddress = thrust::raw_pointer_cast(infoVecs.nodeLocX.data());
+	double* nodeLocYAddress = thrust::raw_pointer_cast(infoVecs.nodeLocY.data());
+	int* nodeAdhIdxAddress = thrust::raw_pointer_cast(infoVecs.nodeAdhereIndex.data());
+	int* membrIntnlAddress = thrust::raw_pointer_cast(infoVecs.membrIntnlIndex.data());
+	double* nodeGrowProAddr = thrust::raw_pointer_cast(infoVecs.nodeGrowPro.data());
+
+	//iteration arguments from original transform
+	uint* bucketVals = thrust::raw_pointer_cast(auxVecs.bucketValues.data()); 
+	uint* bucketKeys = thrust::raw_pointer_cast(auxVecs.bucketKeys.data());		
+	uint* keyStart = thrust::raw_pointer_cast(auxVecs.keyBegin.data());
+	uint* keyEnd = thrust::raw_pointer_cast(auxVecs.keyEnd.data());	
+	
+	//for output
+	double* nodeVelX = thrust::raw_pointer_cast(infoVecs.nodeVelX.data());
+	double* nodeVelY = thrust::raw_pointer_cast(infoVecs.nodeVelY.data());
+
+	unsigned size = endIndx_M;	
+
+//FIXME:
+	thrust::device_vector<int> failed(size, 0);
+
+	applySceForcesDisc_M_transform<<<16, 256>>>(valueAddress, nodeLocXAddress, nodeLocYAddress,
+					nodeAdhIdxAddress, membrIntnlAddress, nodeGrowProAddr,
+					bucketVals, bucketKeys, keyStart, keyEnd,
+					nodeVelX, nodeVelY, size
+					, thrust::raw_pointer_cast(failed.data()));	
+
+	int total_count = 0;
+	for (unsigned i = 0; i < size; i++)
+		total_count += (auxVecs.keyEnd[auxVecs.bucketKeys[i]] - auxVecs.keyBegin[auxVecs.bucketKeys[i]]);
+	std::cout << "TOTAL COUNT NODE-LEVEL: " << total_count << std::endl;
+		
+	int count = thrust::reduce(failed.begin(), failed.end());
+	std::cout << "FAILED COUNT NODE-LEVEL: " << count << std::endl << std::endl;
+}
+
+/*
 void SceNodes::applySceForcesDisc_M() {
 	uint* valueAddress = thrust::raw_pointer_cast(&auxVecs.bucketValuesIncludingNeighbor[0]);
 	double* nodeLocXAddress = thrust::raw_pointer_cast(&infoVecs.nodeLocX[0]);
@@ -2261,6 +2365,7 @@ void SceNodes::applySceForcesDisc_M() {
 			AddForceDisc_M(valueAddress, nodeLocXAddress, nodeLocYAddress,
 					nodeAdhIdxAddress, membrIntnlAddress, nodeGrowProAddr));
 }
+*/
 
 const SceDomainPara& SceNodes::getDomainPara() const {
 	return domainPara;
@@ -2389,7 +2494,6 @@ void SceNodes::sceForcesDisc_M() {
 	cudaEventSynchronize(start2);
 	cudaEventElapsedTime(&elapsedTime1, start1, start2);
 #endif
-
 	
 	coordinator.startProfiler(index);
 
@@ -2410,8 +2514,9 @@ void SceNodes::sceForcesDisc_M() {
 
 	cout << "     --- 3 ---" << endl;
 	cout.flush();
+
 	processMembrAdh_M();
-	
+
 	coordinator.stopProfiler(index);
 	index++;
 

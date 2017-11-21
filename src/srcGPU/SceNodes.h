@@ -261,15 +261,15 @@ struct pointToBucketIndex2D: public thrust::unary_function<CVec3BoolInt, Tuint2>
 	}
 
 	__host__ __device__ Tuint2 operator()(const CVec3BoolInt& v) const {
-		// find the raster indices of p's bucket
+		// find the raster indices of p's bucket (branch condition is nodeIsActive)
 		if (thrust::get<3>(v) == true) {
-			unsigned int x = static_cast<unsigned int>((thrust::get<0>(v)
-					- _minX) / _bucketSize);
-			unsigned int y = static_cast<unsigned int>((thrust::get<1>(v)
-					- _minY) / _bucketSize);
-			// return the bucket's linear index and node's global index
+			unsigned int x = static_cast<unsigned int>((thrust::get<0>(v) - _minX) / _bucketSize); //first operand is nodeLocX
+			unsigned int y = static_cast<unsigned int>((thrust::get<1>(v) - _minY) / _bucketSize); //first operand is nodeLocY
+
+			//return the bucket's linear index and node's global index
 			return thrust::make_tuple(y * width + x, thrust::get<4>(v));
-		} else {
+		} 
+		else {
 			// return UINT_MAX to indicate the node is inactive and its value should not be used
 			return thrust::make_tuple(UINT_MAX, UINT_MAX);
 		}
@@ -468,11 +468,13 @@ double computeDist(double &xPos, double &yPos, double &zPos, double &xPos2,
 __device__
 double computeDist2D(double &xPos, double &yPos, double &xPos2, double &yPos2);
 
+
 __device__
-void calAndAddInter_M(double& xPos, double& yPos, double& xPos2, double& yPos2,
+bool calAndAddInter_M(double& xPos, double& yPos, double& xPos2, double& yPos2,
 		double& xRes, double& yRes);
+
 __device__
-void calAndAddInter_M2(double& xPos, double& yPos, double& xPos2, double& yPos2,
+bool calAndAddInter_M2(double& xPos, double& yPos, double& xPos2, double& yPos2,
 		double& xRes, double& yRes);
 
 __device__

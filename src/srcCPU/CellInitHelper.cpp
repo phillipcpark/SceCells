@@ -797,21 +797,17 @@ vector<CVector> CellInitHelper::generateInitCellNodes() {
 	return attemptedPoss;
 }
 
-vector<CVector> CellInitHelper::generateInitIntnlNodes(CVector& center,
-		double initProg) {
+vector<CVector> CellInitHelper::generateInitIntnlNodes(CVector& center, double initProg) {
 	bool isSuccess = false;
 
-	uint minInitNodeCount =
-			globalConfigVars.getConfigValue("InitCellNodeCount").toInt();
-	uint maxInitNodeCount = globalConfigVars.getConfigValue(
-			"MaxIntnlNodeCountPerCell").toInt();
+	uint minInitNodeCount = globalConfigVars.getConfigValue("InitCellNodeCount").toInt();
+	uint maxInitNodeCount = globalConfigVars.getConfigValue("MaxIntnlNodeCountPerCell").toInt();
 //Ali
 
 //	uint initIntnlNodeCt = minInitNodeCount ; 
 //Ali
 //Ali comment
-	uint initIntnlNodeCt = minInitNodeCount
-			+ (maxInitNodeCount - minInitNodeCount) * initProg;
+	uint initIntnlNodeCt = minInitNodeCount + (maxInitNodeCount - minInitNodeCount) * initProg;
 
 	vector<CVector> attemptedPoss;
 	while (!isSuccess) {
@@ -837,14 +833,12 @@ vector<CVector> CellInitHelper::generateInitIntnlNodes(CVector& center,
 	return attemptedPoss;
 }
 
-vector<CVector> CellInitHelper::generateInitMembrNodes(CVector& center,
-		double initProg) {
-	double initRadius =
-			globalConfigVars.getConfigValue("InitMembrRadius").toDouble();
-	uint initMembrNodeCount = globalConfigVars.getConfigValue(
-			"InitMembrNodeCount").toInt();
+vector<CVector> CellInitHelper::generateInitMembrNodes(CVector& center, double initProg) {
+	double initRadius = globalConfigVars.getConfigValue("InitMembrRadius").toDouble();
+	uint initMembrNodeCount = globalConfigVars.getConfigValue("InitMembrNodeCount").toInt();
 	vector<CVector> initMembrNodes;
 	double unitAngle = 2 * acos(-1.0) / (double) (initMembrNodeCount);
+
 	for (uint i = 0; i < initMembrNodeCount; i++) {
 		CVector node;
 		node.x = initRadius * cos(unitAngle * i) + center.x;
@@ -860,11 +854,11 @@ vector<CVector> CellInitHelper::tryGenInitCellNodes() {
 	//int initCellNodeCount =
 	//    globalConfigVars.getConfigValue("InitCellNodeCount").toInt();
 	// now we need non-uniform initial growth progress.
-	int initCellNodeCount =
-			globalConfigVars.getConfigValue("InitCellNodeCount").toInt();
+	int initCellNodeCount = globalConfigVars.getConfigValue("InitCellNodeCount").toInt();
 	vector<CVector> poss;
 	int foundCount = 0;
 	double randX, randY;
+
 	while (foundCount < initCellNodeCount) {
 		bool isInCircle = false;
                //Ali
