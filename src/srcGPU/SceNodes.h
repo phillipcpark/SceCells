@@ -470,11 +470,11 @@ double computeDist2D(double &xPos, double &yPos, double &xPos2, double &yPos2);
 
 
 __device__
-bool calAndAddInter_M(double& xPos, double& yPos, double& xPos2, double& yPos2,
+void calAndAddInter_M(double& xPos, double& yPos, double& xPos2, double& yPos2,
 		double& xRes, double& yRes);
 
 __device__
-bool calAndAddInter_M2(double& xPos, double& yPos, double& xPos2, double& yPos2,
+void calAndAddInter_M2(double& xPos, double& yPos, double& xPos2, double& yPos2,
 		double& xRes, double& yRes);
 
 __device__

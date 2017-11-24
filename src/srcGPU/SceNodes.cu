@@ -1451,14 +1451,12 @@ void calAndAddIntraB_M(double& xPos, double& yPos, double& xPos2, double& yPos2,
 }
 
 __device__
-bool calAndAddInter_M(double& xPos, double& yPos, double& xPos2, double& yPos2, double& xRes, double& yRes) {
+void calAndAddInter_M(double& xPos, double& yPos, double& xPos2, double& yPos2, double& xRes, double& yRes) {
 	double linkLength = computeDist2D(xPos, yPos, xPos2, yPos2);
 	double forceValue;
 	
-	if (linkLength > sceInterBPara_M[4]) { 
+	if (linkLength > sceInterBPara_M[4])
 		forceValue = 0;
-		return false;
-	}
 		
 	else {
 		//FIXME: maybe some of these values can be pre-computed?
@@ -1466,38 +1464,30 @@ bool calAndAddInter_M(double& xPos, double& yPos, double& xPos2, double& yPos2, 
 				+ sceInterBPara_M[1] / sceInterBPara_M[3] * exp(-linkLength / sceInterBPara_M[3]);
 
 		//FIXME: how often is forceValue > 0, in spite of buckets design?
-		if (forceValue > 0) {
+		if (forceValue > 0) 
 			forceValue = 0;
-			return false;
-		}
 	}
 	xRes = xRes + forceValue * (xPos2 - xPos) / linkLength;
 	yRes = yRes + forceValue * (yPos2 - yPos) / linkLength;
-	return true;
 }
 
 //Ali
 __device__
-bool calAndAddInter_M2(double& xPos, double& yPos, double& xPos2, double& yPos2, double& xRes, double& yRes) {
+void calAndAddInter_M2(double& xPos, double& yPos, double& xPos2, double& yPos2, double& xRes, double& yRes) {
 	double linkLength = computeDist2D(xPos, yPos, xPos2, yPos2);
 	double forceValue;
 
-	if (linkLength > sceInterBPara_Jones_M[2]) {
+	if (linkLength > sceInterBPara_Jones_M[2])
 		forceValue = 0;
-		return false;
-	}
+	
 	else { 
 		forceValue = 24 * sceInterBPara_Jones_M[0] / linkLength * pow(sceInterBPara_Jones_M[1] / linkLength, 6)
 				* (1.0 - 2 * pow(sceInterBPara_Jones_M[1] / linkLength, 6));							
-		if (forceValue > 0) {
+		if (forceValue > 0)
 			forceValue = 0;
-			return false;
-		}
 	}
 	xRes = xRes + forceValue * (xPos2 - xPos) / linkLength;
 	yRes = yRes + forceValue * (yPos2 - yPos) / linkLength;
-
-	return true;
 }
 //Ali
 
@@ -2230,8 +2220,7 @@ void SceNodes::applySceForcesDisc() {
 __global__ void applySceForcesDisc_M_transform(uint* valueAddr, double* nodeLocXAddr, double* nodeLocYAddr,
 						int* nodeAdhIndex, int* membrIntnlAddr, double* nodeGrowProgAddr,
 						uint* bucketVal, uint* bucketKeys, uint* keyStart, uint* keyEnd, 
-						double* nodeVelX, double* nodeVelY, unsigned inputSize
-						, int* failed) {
+						double* nodeVelX, double* nodeVelY, unsigned inputSize) {
 
 	unsigned threadIndex = blockIdx.x * blockDim.x + threadIdx.x;
 	unsigned stride = gridDim.x * blockDim.x; 
@@ -2263,14 +2252,12 @@ __global__ void applySceForcesDisc_M_transform(uint* valueAddr, double* nodeLocX
 				continue;
 	
 			if (bothMembrDiffCell(myValue, nodeRankOther)) {	
-				if (Lennard_Jones) {
-					if (!calAndAddInter_M2(xPos, yPos, nodeLocXAddr[nodeRankOther], nodeLocYAddr[nodeRankOther], xRes, yRes))
-						failed[i]++;
-				}
-				else { 	                  
-					if (!calAndAddInter_M(xPos, yPos, nodeLocXAddr[nodeRankOther], nodeLocYAddr[nodeRankOther], xRes, yRes))
-						failed[i]++;
-				}
+				if (Lennard_Jones)
+					calAndAddInter_M2(xPos, yPos, nodeLocXAddr[nodeRankOther], nodeLocYAddr[nodeRankOther], xRes, yRes);
+				
+				else       
+					calAndAddInter_M(xPos, yPos, nodeLocXAddr[nodeRankOther], nodeLocYAddr[nodeRankOther], xRes, yRes);
+
 				attemptToAdhere(isSuccess, index, dist, nodeRankOther, xPos, yPos, nodeLocXAddr[nodeRankOther], nodeLocYAddr[nodeRankOther]);	
 			}
 
@@ -2306,22 +2293,10 @@ void SceNodes::applySceForcesDisc_M() {
 
 	unsigned size = endIndx_M;	
 
-//FIXME:
-	thrust::device_vector<int> failed(size, 0);
-
 	applySceForcesDisc_M_transform<<<16, 256>>>(valueAddress, nodeLocXAddress, nodeLocYAddress,
 					nodeAdhIdxAddress, membrIntnlAddress, nodeGrowProAddr,
 					bucketVals, bucketKeys, keyStart, keyEnd,
-					nodeVelX, nodeVelY, size
-					, thrust::raw_pointer_cast(failed.data()));	
-
-	int total_count = 0;
-	for (unsigned i = 0; i < size; i++)
-		total_count += (auxVecs.keyEnd[auxVecs.bucketKeys[i]] - auxVecs.keyBegin[auxVecs.bucketKeys[i]]);
-	std::cout << "TOTAL COUNT NODE-LEVEL: " << total_count << std::endl;
-		
-	int count = thrust::reduce(failed.begin(), failed.end());
-	std::cout << "FAILED COUNT NODE-LEVEL: " << count << std::endl << std::endl;
+					nodeVelX, nodeVelY, size);	
 }
 
 /*

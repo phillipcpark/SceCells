@@ -4760,90 +4760,88 @@ __global__
 void applySceCellDisc_M_Transform(double* nodeLocXAddr, double* nodeLocYAddr, bool* nodeIsActiveAddr,
 					uint totalNodeCountForActiveCells, uint maxAllNodePerCell, uint maxMemNodePerCell, double grthPrgrCriVal_M,
 					uint* activeMembrNodeCounts, uint* activeIntnlNodeCounts, double* growthProgress,
-					double* nodeVelX, double* nodeVelY, double* nodeF_MI_M_x, double* nodeF_MI_M_y
-					, int* fail_count) {
+					double* nodeVelX, double* nodeVelY, double* nodeF_MI_M_x, double* nodeF_MI_M_y, 
+					unsigned threadsPerCell) {
 
-	int threadIndex = blockDim.x * blockIdx.x + threadIdx.x;
-	int stride = blockDim.x * gridDim.x;
+	uint threadIndex = blockDim.x * blockIdx.x + threadIdx.x;
+	//uint _threadsPerCell = threadsPerCell;
 
-	for (int i = threadIndex; i < totalNodeCountForActiveCells; i += stride) {
-		uint cellRank = i / maxAllNodePerCell;
-		uint nodeRank = i % maxAllNodePerCell;
-		uint index = cellRank * maxAllNodePerCell + nodeRank;
+	uint cellRank = threadIndex / threadsPerCell;
+	if (!(cellRank < totalNodeCountForActiveCells / maxAllNodePerCell))
+		return;
 
-		if (nodeIsActiveAddr[index] == false) {	
-			nodeF_MI_M_x[i] = 0;
-			nodeF_MI_M_y[i] = 0;	
+	uint cellMembrStart = cellRank * maxAllNodePerCell;
+	uint cellIntnlStart = cellMembrStart + maxMemNodePerCell;
+	uint cellMembrEnd = cellMembrStart + activeMembrNodeCounts[cellRank];
+	uint cellIntnlEnd = cellIntnlStart + activeIntnlNodeCounts[cellRank];
 
-			continue;
+	//multiple threads calculate each cell
+	uint threadMembrStart = cellMembrStart + (threadIndex % threadsPerCell);
+	uint threadIntnlStart = cellIntnlStart + (threadIndex % threadsPerCell);
+
+	double progress = growthProgress[cellRank]; 
+	
+	for (uint i = threadMembrStart; i < cellMembrEnd; i += threadsPerCell) {
+		double F_MI_M_x = 0;
+		double F_MI_M_y = 0;
+		double oriVelX = nodeVelX[i];
+		double oriVelY = nodeVelY[i];        
+		double nodeX = nodeLocXAddr[i];
+		double nodeY = nodeLocYAddr[i];
+		double nodeXOther;
+		double nodeYOther;
+
+		//possible to split up this loop between threads?
+		for (uint j = cellIntnlStart; j < cellIntnlEnd; j++) {
+			nodeXOther = nodeLocXAddr[j];
+			nodeYOther = nodeLocYAddr[j]; 
+					
+			calAndAddIB_M2(nodeX, nodeY, nodeXOther, nodeYOther, progress,
+							oriVelX, oriVelY, F_MI_M_x, F_MI_M_y, grthPrgrCriVal_M);		
 		}
 
-		uint activeMembrCount = activeMembrNodeCounts[cellRank];
-		uint activeIntnlCount = activeIntnlNodeCounts[cellRank];	
-		double progress = growthProgress[cellRank]; 
-	
+		nodeVelX[i] = oriVelX;
+		nodeVelY[i] = oriVelY;
+		nodeF_MI_M_x[i] = F_MI_M_x;
+		nodeF_MI_M_y[i] = F_MI_M_y;	
+	}
+
+	for (uint i = threadIntnlStart; i < cellIntnlEnd; i += threadsPerCell) {
 		double oriVelX = nodeVelX[i];
 		double oriVelY = nodeVelY[i];        
 
 		double F_MI_M_x = 0;
 		double F_MI_M_y = 0;
 
-		uint intnlIndxMemBegin = cellRank * maxAllNodePerCell;
-		uint intnlIndxBegin = intnlIndxMemBegin + maxMemNodePerCell;
-		uint intnlIndxEnd = intnlIndxBegin + activeIntnlCount; 
-
-		double nodeX = nodeLocXAddr[index];
-		double nodeY = nodeLocYAddr[index];
+		double nodeX = nodeLocXAddr[i];
+		double nodeY = nodeLocYAddr[i];
 		double nodeXOther;
 		double nodeYOther;
 
-		//check if node is on membrane
-		if (nodeRank < maxMemNodePerCell) {			
-			for (uint j = intnlIndxBegin; j < intnlIndxEnd; j++) {
-				nodeXOther = nodeLocXAddr[j];
-				nodeYOther = nodeLocYAddr[j]; 
-					
-				if (!calAndAddIB_M2(nodeX, nodeY, nodeXOther, nodeYOther, progress,
-							oriVelX, oriVelY, F_MI_M_x, F_MI_M_y, grthPrgrCriVal_M)) {
-					fail_count[i]++;
-				}
-			}				
-		}
+		for (uint j = cellMembrStart; j < cellMembrEnd; j++) {
+			nodeXOther = nodeLocXAddr[j];
+			nodeYOther = nodeLocYAddr[j];
 
-		//node is internal
-		else {
-			//FIXME: note that range is activeMembrCount (active nodes justified to left?)
-			for (uint j = intnlIndxMemBegin; j < intnlIndxMemBegin + activeMembrCount; j++) {
-				nodeXOther = nodeLocXAddr[j];
-				nodeYOther = nodeLocYAddr[j];
+			calAndAddIB_M(nodeX, nodeY, nodeXOther, nodeYOther, progress,
+							oriVelX, oriVelY, grthPrgrCriVal_M);
+		}	
 
-				if (!calAndAddIB_M(nodeX, nodeY, nodeXOther, nodeYOther, progress,
-							oriVelX, oriVelY, grthPrgrCriVal_M)) {
-					fail_count[i]++;
-				}
-			}
-
-			//FIXME: note that range is activeIntnlCount (active nodes justified to left?)
-			for (uint j = intnlIndxBegin; j < intnlIndxEnd; j++) {
-				//same node
-				if (j == index) 
-					continue;
+		for (uint j = cellIntnlStart; j < cellIntnlEnd; j++) {
+			if (j == i) 
+				continue;
 				
-				nodeXOther = nodeLocXAddr[j];
-				nodeYOther = nodeLocYAddr[j];
-				if (!calAndAddII_M(nodeX, nodeY, nodeXOther, nodeYOther, progress,
-						oriVelX, oriVelY, grthPrgrCriVal_M)) {
-					fail_count[i]++;
-				}
-			}
+			nodeXOther = nodeLocXAddr[j];
+			nodeYOther = nodeLocYAddr[j];
+			
+			calAndAddII_M(nodeX, nodeY, nodeXOther, nodeYOther, progress,
+							oriVelX, oriVelY, grthPrgrCriVal_M);
 		}
 
-		//write output
 		nodeVelX[i] = oriVelX;
 		nodeVelY[i] = oriVelY;
 		nodeF_MI_M_x[i] = F_MI_M_x;
 		nodeF_MI_M_y[i] = F_MI_M_y;	
-	}
+	} 
 } 
 
 //Phillip: modified version invokes CUDA kernel
@@ -4871,72 +4869,12 @@ void SceCells::applySceCellDisc_M() {
 	double* nodeF_MI_M_x = thrust::raw_pointer_cast(nodes->getInfoVecs().nodeF_MI_M_x.data());
 	double* nodeF_MI_M_y = thrust::raw_pointer_cast(nodes->getInfoVecs().nodeF_MI_M_y.data());
 
-//FIXME:
-	thrust::device_vector<int> fail_count(totalNodeCountForActiveCells, 0);
-
-	applySceCellDisc_M_Transform<<<16, 256>>> (nodeLocXAddr, nodeLocYAddr, nodeIsActiveAddr,
+	unsigned threadsPerCell = 6;
+	
+	applySceCellDisc_M_Transform<<<16, 192>>> (nodeLocXAddr, nodeLocYAddr, nodeIsActiveAddr,
 							totalNodeCountForActiveCells, maxAllNodePerCell, maxMemNodePerCell, grthPrgrCriVal_M,
 							activeMembrNodeCounts, activeIntnlNodeCounts, growthProgress,
-							nodeVelX, nodeVelY, nodeF_MI_M_x, nodeF_MI_M_y
-							, thrust::raw_pointer_cast(fail_count.data()));
-
-	int total_count = 0;
-	for (int i = 0; i < (totalNodeCountForActiveCells / maxAllNodePerCell); i++) {
-		total_count += cellInfoVecs.activeMembrNodeCounts[i];
-		total_count += cellInfoVecs.activeIntnlNodeCounts[i];
-	}
-	
-	std::cout << "\n\nCELL-LEVEL TOTAL ACTIVE COUNT: " << total_count << " FAILED: " << thrust::reduce(fail_count.begin(), fail_count.end()) << "\n";
-	
-/*	
-	//FIXME: count active nodes and locations
-	bool intnl = false;
-	bool last_active = false;
-	int membr_count = 0 ;
-	int intnl_count = 0;
-
-	for (int i = 0; i < totalNodeCountForActiveCells; i ++) { 
-		if (i % maxAllNodePerCell == 0) { 
-			std::cout << "\nTOTAL Inactive Membr: " << membr_count << " TOTAL Inactive Intnl: " << intnl_count; 	
-			std::cout << "\nNEW cell: " << i / maxAllNodePerCell << std::endl;
-			std::cout << "Active counts per vector: " << (int)cellInfoVecs.activeMembrNodeCounts[i / maxAllNodePerCell] << " ";
-			std::cout << (int)cellInfoVecs.activeIntnlNodeCounts[i / maxAllNodePerCell] << std::endl;
-
-			intnl = false;
-			last_active = false; 			
-			membr_count = intnl_count = 0;
-		}
-
-		if (i % maxAllNodePerCell == 200)
-			intnl = true;
-
-		if (last_active && !(nodes->getInfoVecs().nodeIsActive[i])) {
-			last_active = false;
-
-			if (!intnl)
-				std::cout << "starting inactive MEMBR at " << i % maxAllNodePerCell << std::endl;
-			else 
-				std::cout << "starting inactive INTNL at " << i % maxAllNodePerCell << std::endl;		
-		}
-
-		else if (!last_active && nodes->getInfoVecs().nodeIsActive[i]) {
-			last_active = true;
-			
-			if (!intnl)
-				std::cout << "starting active MEMBR at " << i % maxAllNodePerCell << std::endl;
-			else	
-				std::cout << "starting active INTNL at " << i % maxAllNodePerCell << std::endl;
-		}
-
-		if (!(nodes->getInfoVecs().nodeIsActive[i])) {
-			if (intnl)
-				intnl_count++;
-			else
-				membr_count++;
-		}	
-	}	
-	std::cout << std::endl;
-*/
+							nodeVelX, nodeVelY, nodeF_MI_M_x, nodeF_MI_M_y, threadsPerCell);
 }
 
 /*
@@ -5012,7 +4950,7 @@ void SceCells::applySceCellDisc_M() {
 */
 
 __device__
-bool calAndAddIB_M(double& xPos, double& yPos, double& xPos2, double& yPos2,
+void calAndAddIB_M(double& xPos, double& yPos, double& xPos2, double& yPos2,
 		double& growPro, double& xRes, double& yRes, double grthPrgrCriVal_M) {
 	double linkLength = compDist2D(xPos, yPos, xPos2, yPos2);
 
@@ -5024,17 +4962,12 @@ bool calAndAddIB_M(double& xPos, double& yPos, double& xPos2, double& yPos2,
 					+ sceIBDiv_M[1] / sceIBDiv_M[3]
 							* exp(-linkLength / sceIBDiv_M[3]);
 		}
-
-		else
-			return false;
-
 	} 
 	
 	else if (growPro > grthPrgrCriVal_M) {
-		double percent = (growPro - grthPrgrCriVal_M)
-				/ (grthPrgrCriEnd_M - grthPrgrCriVal_M);
-		double lenLimit = percent * (sceIBDiv_M[4])
-				+ (1.0 - percent) * sceIB_M[4];
+		double percent = (growPro - grthPrgrCriVal_M) / (grthPrgrCriEnd_M - grthPrgrCriVal_M);
+		double lenLimit = percent * (sceIBDiv_M[4]) + (1.0 - percent) * sceIB_M[4];
+
 		if (linkLength < lenLimit) {
 			double intnlBPara0 = percent * (sceIBDiv_M[0])
 					+ (1.0 - percent) * sceIB_M[0];
@@ -5048,11 +4981,7 @@ bool calAndAddIB_M(double& xPos, double& yPos, double& xPos2, double& yPos2,
 					* exp(-linkLength / intnlBPara2)
 					+ intnlBPara1 / intnlBPara3
 							* exp(-linkLength / intnlBPara3);
-		}
-		
-		else
-			return false;
-
+		}		
 	} 
 	
 	else {
@@ -5061,18 +4990,13 @@ bool calAndAddIB_M(double& xPos, double& yPos, double& xPos2, double& yPos2,
 					* exp(-linkLength / sceIB_M[2])
 					+ sceIB_M[1] / sceIB_M[3] * exp(-linkLength / sceIB_M[3]);
 		}
-
-		else
-			return false;
 	}
 	xRes = xRes + forceValue * (xPos2 - xPos) / linkLength;
 	yRes = yRes + forceValue * (yPos2 - yPos) / linkLength;
-
-	return true;
 }
 //Ali function added for eventually computing pressure for each cells
 __device__
-bool calAndAddIB_M2(double& xPos, double& yPos, double& xPos2, double& yPos2,
+void calAndAddIB_M2(double& xPos, double& yPos, double& xPos2, double& yPos2,
 		double& growPro, double& xRes, double& yRes, double & F_MI_M_x, double & F_MI_M_y, double grthPrgrCriVal_M) {
 	double linkLength = compDist2D(xPos, yPos, xPos2, yPos2);
 
@@ -5083,10 +5007,7 @@ bool calAndAddIB_M2(double& xPos, double& yPos, double& xPos2, double& yPos2,
 					* exp(-linkLength / sceIBDiv_M[2])
 					+ sceIBDiv_M[1] / sceIBDiv_M[3]
 							* exp(-linkLength / sceIBDiv_M[3]);
-		}
-		
-		else 
-			return false;
+		}	
 	} 
 	
 	else if (growPro > grthPrgrCriVal_M) {
@@ -5108,9 +5029,6 @@ bool calAndAddIB_M2(double& xPos, double& yPos, double& xPos2, double& yPos2,
 					+ intnlBPara1 / intnlBPara3
 							* exp(-linkLength / intnlBPara3);
 		}
-
-		else
-			return false;
 	} 
 	
 	else {
@@ -5119,9 +5037,6 @@ bool calAndAddIB_M2(double& xPos, double& yPos, double& xPos2, double& yPos2,
 					* exp(-linkLength / sceIB_M[2])
 					+ sceIB_M[1] / sceIB_M[3] * exp(-linkLength / sceIB_M[3]);
 		}
-
-		else
-			return false;
 	}
 
 	F_MI_M_x=F_MI_M_x+forceValue * (xPos2 - xPos) / linkLength;
@@ -5130,10 +5045,9 @@ bool calAndAddIB_M2(double& xPos, double& yPos, double& xPos2, double& yPos2,
 	xRes = xRes + forceValue * (xPos2 - xPos) / linkLength;
 	yRes = yRes + forceValue * (yPos2 - yPos) / linkLength;
 
-	return true;
 }
 __device__
-bool calAndAddII_M(double& xPos, double& yPos, double& xPos2, double& yPos2,
+void calAndAddII_M(double& xPos, double& yPos, double& xPos2, double& yPos2,
 		double& growPro, double& xRes, double& yRes, double grthPrgrCriVal_M) {
 	double linkLength = compDist2D(xPos, yPos, xPos2, yPos2);
 
@@ -5144,10 +5058,7 @@ bool calAndAddII_M(double& xPos, double& yPos, double& xPos2, double& yPos2,
 					* exp(-linkLength / sceIIDiv_M[2])
 					+ sceIIDiv_M[1] / sceIIDiv_M[3]
 							* exp(-linkLength / sceIIDiv_M[3]);
-		}
-		
-		else
-			return false;
+		}	
 	} 
 
 	else if (growPro > grthPrgrCriVal_M) {
@@ -5167,10 +5078,7 @@ bool calAndAddII_M(double& xPos, double& yPos, double& xPos2, double& yPos2,
 			forceValue = -intraPara0 / intraPara2
 					* exp(-linkLength / intraPara2)
 					+ intraPara1 / intraPara3 * exp(-linkLength / intraPara3);
-		}
-	
-		else
-			return false;
+		}	
 	} 
 
 	else {
@@ -5179,13 +5087,8 @@ bool calAndAddII_M(double& xPos, double& yPos, double& xPos2, double& yPos2,
 					* exp(-linkLength / sceII_M[2])
 					+ sceII_M[1] / sceII_M[3] * exp(-linkLength / sceII_M[3]);
 		}
-
-		else
-			return false;
 	}
 
 	xRes = xRes + forceValue * (xPos2 - xPos) / linkLength;
 	yRes = yRes + forceValue * (yPos2 - yPos) / linkLength;
-
-	return true;
 }

@@ -96,15 +96,15 @@ __device__
 double cross_Z(double vecA_X, double vecA_Y, double vecB_X, double vecB_Y);
 
 __device__
-bool calAndAddIB_M(double& xPos, double& yPos, double& xPos2, double& yPos2,
+void calAndAddIB_M(double& xPos, double& yPos, double& xPos2, double& yPos2,
 		double& growPro, double& xRes, double& yRes, double grthPrgrCriVal_M);
 //AliA 
 __device__
-bool calAndAddIB_M2(double& xPos, double& yPos, double& xPos2, double& yPos2,
+void calAndAddIB_M2(double& xPos, double& yPos, double& xPos2, double& yPos2,
 		double& growPro, double& xRes, double& yRes, double &F_MI_M_x, double & F_MI_M_y,double grthPrgrCriVal_M);
 
 __device__
-bool calAndAddII_M(double& xPos, double& yPos, double& xPos2, double& yPos2,
+void calAndAddII_M(double& xPos, double& yPos, double& xPos2, double& yPos2,
 		double& growPro, double& xRes, double& yRes, double grthPrgrCriVal_M);
 
 __device__
