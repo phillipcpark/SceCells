@@ -5040,6 +5040,7 @@ void applySceCellDisc_M_Transform(double* nodeLocXAddr, double* nodeLocYAddr, bo
 }
 */
 
+/*
 //Phillip: modified version invokes CUDA kernel
 void SceCells::applySceCellDisc_M() {
 
@@ -5073,8 +5074,9 @@ void SceCells::applySceCellDisc_M() {
 							activeMembrNodeCounts, activeIntnlNodeCounts, growthProgress,
 							nodeVelX, nodeVelY, nodeF_MI_M_x, nodeF_MI_M_y, threadsPerCell);
 }
+*/
 
-/*
+
 void SceCells::applySceCellDisc_M() {
 	totalNodeCountForActiveCells = allocPara_m.currentActiveCellCount
 			* allocPara_m.maxAllNodePerCell;
@@ -5144,7 +5146,7 @@ void SceCells::applySceCellDisc_M() {
 			AddSceCellForce(maxAllNodePerCell, maxMemNodePerCell, nodeLocXAddr,
 					nodeLocYAddr, nodeIsActiveAddr, grthPrgrCriVal_M));
 }
-*/
+
 
 __device__
 void calAndAddIB_M(double& xPos, double& yPos, double& xPos2, double& yPos2,

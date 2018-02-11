@@ -2295,6 +2295,7 @@ __global__ void applySceForcesDisc_M_transform(uint* valueAddr, double* nodeLocX
 	}
 }
 
+/*
 //Phillip: alternate version invokes CUDA kernel
 void SceNodes::applySceForcesDisc_M() {
 
@@ -2323,8 +2324,8 @@ void SceNodes::applySceForcesDisc_M() {
 					bucketVals, bucketKeys, keyStart, keyEnd,
 					nodeVelX, nodeVelY, size);	
 }
+*/
 
-/*
 void SceNodes::applySceForcesDisc_M() {
 	uint* valueAddress = thrust::raw_pointer_cast(&auxVecs.bucketValuesIncludingNeighbor[0]);
 	double* nodeLocXAddress = thrust::raw_pointer_cast(&infoVecs.nodeLocX[0]);
@@ -2365,7 +2366,7 @@ void SceNodes::applySceForcesDisc_M() {
 			AddForceDisc_M(valueAddress, nodeLocXAddress, nodeLocYAddress,
 					nodeAdhIdxAddress, membrIntnlAddress, nodeGrowProAddr));
 }
-*/
+
 
 const SceDomainPara& SceNodes::getDomainPara() const {
 	return domainPara;
