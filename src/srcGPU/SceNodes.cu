@@ -97,13 +97,16 @@ void SceNodes::readDomainPara() {
 	domainPara.maxY = globalConfigVars.getConfigValue("DOMAIN_YMAX").toDouble();
 	//domainPara.minZ = globalConfigVars.getConfigValue("DOMAIN_ZMIN").toDouble();
 	//domainPara.maxZ = globalConfigVars.getConfigValue("DOMAIN_ZMAX").toDouble();
+
 	domainPara.gridSpacing = getMaxEffectiveRange();
+	
 	domainPara.XBucketSize = (domainPara.maxX - domainPara.minX)
 			/ domainPara.gridSpacing + 1;
 	domainPara.YBucketSize = (domainPara.maxY - domainPara.minY)
 			/ domainPara.gridSpacing + 1;
 	//domainPara.ZBucketSize = (domainPara.maxZ - domainPara.minZ)
 	//		/ domainPara.gridSpacing + 1;
+
 }
 
 void SceNodes::readMechPara() {
@@ -424,11 +427,14 @@ void SceNodes::initDimension(double domainMinX, double domainMaxX,
 	domainPara.maxX = domainMaxX;
 	domainPara.minY = domainMinY;
 	domainPara.maxY = domainMaxY;
+
 	domainPara.gridSpacing = domainBucketSize;
 	domainPara.XBucketSize = (domainPara.maxX - domainPara.minX)
 			/ domainPara.gridSpacing + 1;
+
 	domainPara.YBucketSize = (domainPara.maxY - domainPara.minY)
 			/ domainPara.gridSpacing + 1;
+
 	domainPara.totalBucketCount = domainPara.XBucketSize
 			* domainPara.YBucketSize;
 
@@ -1069,21 +1075,29 @@ VtkAnimationData SceNodes::obtainAnimationData_M(AnimationCriteria aniCri) {
 
 void SceNodes::findBucketBounds() {
 	thrust::counting_iterator<unsigned int> search_begin(0);
+
 	thrust::lower_bound(auxVecs.bucketKeysExpanded.begin(),
-			auxVecs.bucketKeysExpanded.end(), search_begin,
+			auxVecs.bucketKeysExpanded.end(), 
+			search_begin,
 			search_begin + domainPara.totalBucketCount,
 			auxVecs.keyBegin.begin());
+
 	thrust::upper_bound(auxVecs.bucketKeysExpanded.begin(),
-			auxVecs.bucketKeysExpanded.end(), search_begin,
-			search_begin + domainPara.totalBucketCount, auxVecs.keyEnd.begin());
+			auxVecs.bucketKeysExpanded.end(), 
+			search_begin,
+			search_begin + domainPara.totalBucketCount, 
+			auxVecs.keyEnd.begin());
 }
 
 void SceNodes::findBucketBounds_M() {
 	thrust::counting_iterator<uint> search_begin(0);
+
 	thrust::lower_bound(auxVecs.bucketKeysExpanded.begin(),
-			auxVecs.bucketKeysExpanded.begin() + endIndxExtProc_M, search_begin,
-			search_begin + domainPara.totalBucketCount,
-			auxVecs.keyBegin.begin());
+				auxVecs.bucketKeysExpanded.begin() + endIndxExtProc_M, 
+				search_begin,
+				search_begin + domainPara.totalBucketCount,
+				auxVecs.keyBegin.begin());
+
 	thrust::upper_bound(auxVecs.bucketKeysExpanded.begin(),
 			auxVecs.bucketKeysExpanded.begin() + endIndxExtProc_M, search_begin,
 			search_begin + domainPara.totalBucketCount, auxVecs.keyEnd.begin());
@@ -1174,6 +1188,10 @@ void SceNodes::buildBuckets2D() {
 	thrust::counting_iterator<uint> countingIterBegin(0);
 	thrust::counting_iterator<uint> countingIterEnd(totalActiveNodes);
 
+	//Phillip: these counts needed for functor to disregard internal nodes
+	uint maxNodePerCell = allocPara_M.maxAllNodePerCell;
+	uint maxMembrNodePerCell = allocPara_M.maxMembrNodePerCell;
+
 // takes counting iterator and coordinates
 // return tuple of keys and values
 // transform the points to their bucket indices
@@ -1193,7 +1211,8 @@ void SceNodes::buildBuckets2D() {
 					make_tuple(auxVecs.bucketKeys.begin(),
 							auxVecs.bucketValues.begin())),
 			pointToBucketIndex2D(domainPara.minX, domainPara.maxX,
-					domainPara.minY, domainPara.maxY, domainPara.gridSpacing));
+					domainPara.minY, domainPara.maxY, domainPara.gridSpacing,
+					maxNodePerCell, maxMembrNodePerCell));
 
 // sort the points by their bucket index
 	thrust::sort_by_key(auxVecs.bucketKeys.begin(), auxVecs.bucketKeys.end(),
@@ -1215,6 +1234,11 @@ void SceNodes::buildBuckets2D_M() {
 					* allocPara_M.maxAllNodePerCell;
 
 	thrust::counting_iterator<uint> iBegin(0);
+	
+	//Phillip: these counts needed for functor to disregard internal nodes
+	uint maxNodePerCell = allocPara_M.maxAllNodePerCell;
+	uint maxMembrNodePerCell = allocPara_M.maxMembrNodePerCell;
+
 	// takes counting iterator and coordinates
 	// return tuple of keys and values
 	// transform the points to their bucket indices
@@ -1234,7 +1258,9 @@ void SceNodes::buildBuckets2D_M() {
 					make_tuple(auxVecs.bucketKeys.begin(),
 							auxVecs.bucketValues.begin())),
 			pointToBucketIndex2D(domainPara.minX, domainPara.maxX,
-					domainPara.minY, domainPara.maxY, domainPara.gridSpacing));
+					domainPara.minY, domainPara.maxY, domainPara.gridSpacing,
+					maxNodePerCell, maxMembrNodePerCell));
+
 
 	// sort the points by their bucket index
 	thrust::sort_by_key(auxVecs.bucketKeys.begin(),
@@ -1246,6 +1272,7 @@ void SceNodes::buildBuckets2D_M() {
 			auxVecs.bucketKeys.begin() + totalActiveNodes, UINT_MAX);
 
 	endIndx_M = totalActiveNodes - numberOfOutOfRange;
+
 }
 
 void SceNodes::buildBuckets3D() {
@@ -1459,11 +1486,9 @@ void calAndAddInter_M(double& xPos, double& yPos, double& xPos2, double& yPos2, 
 		forceValue = 0;
 		
 	else {
-		//FIXME: maybe some of these values can be pre-computed?
 		forceValue = -sceInterBPara_M[0] / sceInterBPara_M[2] * exp(-linkLength / sceInterBPara_M[2])
 				+ sceInterBPara_M[1] / sceInterBPara_M[3] * exp(-linkLength / sceInterBPara_M[3]);
 
-		//FIXME: how often is forceValue > 0, in spite of buckets design?
 		if (forceValue > 0) 
 			forceValue = 0;
 	}
@@ -2250,8 +2275,8 @@ __global__ void applySceForcesDisc_M_transform(uint* valueAddr, double* nodeLocX
 
 			if (nodeRankOther == myValue) 
 				continue;
-	
-			if (bothMembrDiffCell(myValue, nodeRankOther)) {	
+
+			if (bothMembrDiffCell(myValue, nodeRankOther)) {
 				if (Lennard_Jones)
 					calAndAddInter_M2(xPos, yPos, nodeLocXAddr[nodeRankOther], nodeLocYAddr[nodeRankOther], xRes, yRes);
 				

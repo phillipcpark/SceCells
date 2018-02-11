@@ -4755,7 +4755,7 @@ __device__ double calBendMulti_Mitotic(double& angle, uint activeMembrCt, double
 	}
 }
 
-//Phillip: CUDA kernel
+//Phillip: replaces transform in original implementation 
 __global__
 void applySceCellDisc_M_Transform(double* nodeLocXAddr, double* nodeLocYAddr, bool* nodeIsActiveAddr,
 					uint totalNodeCountForActiveCells, uint maxAllNodePerCell, uint maxMemNodePerCell, double grthPrgrCriVal_M,
@@ -4763,86 +4763,282 @@ void applySceCellDisc_M_Transform(double* nodeLocXAddr, double* nodeLocYAddr, bo
 					double* nodeVelX, double* nodeVelY, double* nodeF_MI_M_x, double* nodeF_MI_M_y, 
 					unsigned threadsPerCell) {
 
-	uint threadIndex = blockDim.x * blockIdx.x + threadIdx.x;
-	//uint _threadsPerCell = threadsPerCell;
+	uint threadId = blockDim.x * blockIdx.x + threadIdx.x;
+	uint warpId = threadId / 32;
+	uint warpThreadId = threadId % 32;
+	uint cellsPerWarp = 32 / threadsPerCell;
 
-	uint cellRank = threadIndex / threadsPerCell;
-	if (!(cellRank < totalNodeCountForActiveCells / maxAllNodePerCell))
+	//each warp pair computes the same cells (one for membrane, one for internal)
+	uint cellId = (warpId / 2 * cellsPerWarp) + (warpThreadId / threadsPerCell);
+
+	if (cellId >= totalNodeCountForActiveCells / maxAllNodePerCell)
 		return;
 
-	uint cellMembrStart = cellRank * maxAllNodePerCell;
+	uint cellMembrStart = cellId * maxAllNodePerCell;
 	uint cellIntnlStart = cellMembrStart + maxMemNodePerCell;
-	uint cellMembrEnd = cellMembrStart + activeMembrNodeCounts[cellRank];
-	uint cellIntnlEnd = cellIntnlStart + activeIntnlNodeCounts[cellRank];
+	uint cellMembrEnd = cellMembrStart + activeMembrNodeCounts[cellId];
+	uint cellIntnlEnd = cellIntnlStart + activeIntnlNodeCounts[cellId];
 
-	//multiple threads calculate each cell
-	uint threadMembrStart = cellMembrStart + (threadIndex % threadsPerCell);
-	uint threadIntnlStart = cellIntnlStart + (threadIndex % threadsPerCell);
+	uint threadOffset = warpThreadId % threadsPerCell;
+	uint threadMembrStart = cellMembrStart + threadOffset;
+	uint threadIntnlStart = cellIntnlStart + threadOffset;
 
-	double progress = growthProgress[cellRank]; 
-	
-	for (uint i = threadMembrStart; i < cellMembrEnd; i += threadsPerCell) {
-		double F_MI_M_x = 0;
-		double F_MI_M_y = 0;
-		double oriVelX = nodeVelX[i];
-		double oriVelY = nodeVelY[i];        
-		double nodeX = nodeLocXAddr[i];
-		double nodeY = nodeLocYAddr[i];
-		double nodeXOther;
-		double nodeYOther;
+        double progress = growthProgress[cellId]; 
 
-		//possible to split up this loop between threads?
-		for (uint j = cellIntnlStart; j < cellIntnlEnd; j++) {
-			nodeXOther = nodeLocXAddr[j];
-			nodeYOther = nodeLocYAddr[j]; 
+	//even warps calculate membrane nodes, while odd internal
+	if (warpId % 2 == 0) {			
+		for (uint i = threadMembrStart; i < cellMembrEnd; i += threadsPerCell) {	
+			double F_MI_M_x = 0;
+			double F_MI_M_y = 0;
+			double oriVelX = nodeVelX[i];
+			double oriVelY = nodeVelY[i];        
+			double nodeX = nodeLocXAddr[i];
+			double nodeY = nodeLocYAddr[i];
+
+			for (uint j = cellIntnlStart; j < cellIntnlEnd; j++) {
+				double nodeXOther = nodeLocXAddr[j];
+				double nodeYOther = nodeLocYAddr[j]; 
 					
-			calAndAddIB_M2(nodeX, nodeY, nodeXOther, nodeYOther, progress,
-							oriVelX, oriVelY, F_MI_M_x, F_MI_M_y, grthPrgrCriVal_M);		
+				calAndAddIB_M2(nodeX, nodeY, nodeXOther, nodeYOther, progress,
+						oriVelX, oriVelY, F_MI_M_x, F_MI_M_y, grthPrgrCriVal_M);							
+			}
+		
+			nodeVelX[i] = oriVelX;
+			nodeVelY[i] = oriVelY;
+			nodeF_MI_M_x[i] = F_MI_M_x;
+			nodeF_MI_M_y[i] = F_MI_M_y;	
 		}
-
-		nodeVelX[i] = oriVelX;
-		nodeVelY[i] = oriVelY;
-		nodeF_MI_M_x[i] = F_MI_M_x;
-		nodeF_MI_M_y[i] = F_MI_M_y;	
 	}
 
-	for (uint i = threadIntnlStart; i < cellIntnlEnd; i += threadsPerCell) {
-		double oriVelX = nodeVelX[i];
-		double oriVelY = nodeVelY[i];        
+	else {
+		for (uint i = threadIntnlStart; i < cellIntnlEnd; i += threadsPerCell) {
+			double oriVelX = nodeVelX[i];
+			double oriVelY = nodeVelY[i];        
+			double F_MI_M_x = 0;
+			double F_MI_M_y = 0;
+			double nodeX = nodeLocXAddr[i];
+			double nodeY = nodeLocYAddr[i];
 
-		double F_MI_M_x = 0;
-		double F_MI_M_y = 0;
+			for (uint j = cellMembrStart; j < cellMembrEnd; j++) {
+				double nodeXOther = nodeLocXAddr[j];
+				double nodeYOther = nodeLocYAddr[j];
 
-		double nodeX = nodeLocXAddr[i];
-		double nodeY = nodeLocYAddr[i];
-		double nodeXOther;
-		double nodeYOther;
+				calAndAddIB_M(nodeX, nodeY, nodeXOther, nodeYOther, progress,
+						oriVelX, oriVelY, grthPrgrCriVal_M);
+			}
 
-		for (uint j = cellMembrStart; j < cellMembrEnd; j++) {
-			nodeXOther = nodeLocXAddr[j];
-			nodeYOther = nodeLocYAddr[j];
-
-			calAndAddIB_M(nodeX, nodeY, nodeXOther, nodeYOther, progress,
-							oriVelX, oriVelY, grthPrgrCriVal_M);
-		}	
-
-		for (uint j = cellIntnlStart; j < cellIntnlEnd; j++) {
-			if (j == i) 
-				continue;
+			for (uint j = cellIntnlStart; j < cellIntnlEnd; j++) {
+				if (j == i) 
+					continue;
 				
-			nodeXOther = nodeLocXAddr[j];
-			nodeYOther = nodeLocYAddr[j];
+				double nodeXOther = nodeLocXAddr[j];
+				double nodeYOther = nodeLocYAddr[j];
 			
-			calAndAddII_M(nodeX, nodeY, nodeXOther, nodeYOther, progress,
-							oriVelX, oriVelY, grthPrgrCriVal_M);
-		}
+				calAndAddII_M(nodeX, nodeY, nodeXOther, nodeYOther, progress,
+						oriVelX, oriVelY, grthPrgrCriVal_M);
+			}
 
-		nodeVelX[i] = oriVelX;
-		nodeVelY[i] = oriVelY;
-		nodeF_MI_M_x[i] = F_MI_M_x;
-		nodeF_MI_M_y[i] = F_MI_M_y;	
+			nodeVelX[i] = oriVelX;
+			nodeVelY[i] = oriVelY;
+			nodeF_MI_M_x[i] = F_MI_M_x;
+			nodeF_MI_M_y[i] = F_MI_M_y;	
+		}
 	} 
 } 
+
+/*
+//vectorized load version
+__global__
+void applySceCellDisc_M_Transform(double* nodeLocXAddr, double* nodeLocYAddr, bool* nodeIsActiveAddr,
+					uint totalNodeCountForActiveCells, uint maxAllNodePerCell, uint maxMemNodePerCell, double grthPrgrCriVal_M,
+					uint* activeMembrNodeCounts, uint* activeIntnlNodeCounts, double* growthProgress,
+					double* nodeVelX, double* nodeVelY, double* nodeF_MI_M_x, double* nodeF_MI_M_y, 
+					unsigned threadsPerCell) {
+
+	uint threadId = blockDim.x * blockIdx.x + threadIdx.x;
+	uint warpId = threadId / 32;
+	uint warpThreadId = threadId % 32;
+	uint cellsPerWarp = 32 / threadsPerCell;
+
+	//each warp pair computes the same cells (one for membrane, one for internal)
+	uint cellId = (warpId / 2 * cellsPerWarp) + (warpThreadId / threadsPerCell);
+
+	if (cellId >= totalNodeCountForActiveCells / maxAllNodePerCell)
+		return;
+
+	uint cellMembrStart = cellId * maxAllNodePerCell;
+	uint cellIntnlStart = cellMembrStart + maxMemNodePerCell;
+	uint cellMembrEnd = cellMembrStart + activeMembrNodeCounts[cellId];
+	uint cellIntnlEnd = cellIntnlStart + activeIntnlNodeCounts[cellId];
+
+	uint threadOffset = warpThreadId % threadsPerCell;
+	uint threadMembrStart = cellMembrStart + threadOffset;
+	uint threadIntnlStart = cellIntnlStart + threadOffset;
+
+	uint cellMembrStartVec;
+	uint cellMembrEndVec;
+	uint cellIntnlStartVec;
+	uint cellIntnlEndVec;	
+
+	double progress = growthProgress[cellId]; 
+
+	//vectorized calculations done in groups of 4, loose nodes on either end must be calculated seperately
+	if (cellIntnlStart % 4 != 0)
+		cellIntnlStartVec = cellIntnlStart + (4 - (cellIntnlStart % 4));
+	else
+		cellIntnlStartVec = cellIntnlStart;			
+
+	if (cellIntnlEnd % 4 != 0)
+		cellIntnlEndVec = cellIntnlEnd - (cellIntnlEnd % 4);
+	else
+		cellIntnlEndVec = cellIntnlEnd;			
+	
+	if (cellMembrStart % 4 != 0)
+		cellMembrStartVec = cellMembrStart + (4 - (cellMembrStart % 4));
+	else
+		cellMembrStartVec = cellMembrStart;
+
+	if (cellMembrEnd % 4 != 0)
+		cellMembrEndVec = cellMembrEnd - (cellMembrEnd % 4);
+	else
+		cellMembrEndVec = cellMembrEnd;
+	
+	//even warps calculate membrane nodes, while odd internal
+	if (warpId % 2 == 0) {			
+		for (uint i = threadMembrStart; i < cellMembrEnd; i += threadsPerCell) {	
+			double F_MI_M_x = 0;
+			double F_MI_M_y = 0;
+			double oriVelX = nodeVelX[i];
+			double oriVelY = nodeVelY[i];        
+			double nodeX = nodeLocXAddr[i];
+			double nodeY = nodeLocYAddr[i];
+
+			//loose nodes at beginning of internal range
+			if (cellIntnlStartVec != cellIntnlStart) {
+				for (uint j = cellIntnlStart; j < cellIntnlStartVec; j++) {
+					double nodeXOther = nodeLocXAddr[j];
+					double nodeYOther = nodeLocYAddr[j]; 
+					
+					calAndAddIB_M2(nodeX, nodeY, nodeXOther, nodeYOther, progress,
+							oriVelX, oriVelY, F_MI_M_x, F_MI_M_y, grthPrgrCriVal_M);							
+				}
+			}
+
+			//vector-loaded nodes			
+			for (uint j = cellIntnlStartVec; j < cellIntnlEnd; j++) {
+				double4 nodeXOther = reinterpret_cast<double4*>(nodeLocXAddr)[j];
+				double4 nodeYOther = reinterpret_cast<double4*>(nodeLocYAddr)[j]; 
+			
+				calAndAddIB_M2_Vec4(nodeX, nodeY, nodeXOther, nodeYOther, progress,
+						oriVelX, oriVelY, F_MI_M_x, F_MI_M_y, grthPrgrCriVal_M);		
+			}
+
+			//loose nodes at end of internal range
+			if (cellIntnlEndVec != cellIntnlEnd) {
+				for (uint j = cellIntnlEndVec; j < cellIntnlEnd; j++) {
+					double nodeXOther = nodeLocXAddr[j];
+					double nodeYOther = nodeLocYAddr[j]; 
+					
+					calAndAddIB_M2(nodeX, nodeY, nodeXOther, nodeYOther, progress,
+							oriVelX, oriVelY, F_MI_M_x, F_MI_M_y, grthPrgrCriVal_M);
+				}
+			}
+
+			nodeVelX[i] = oriVelX;
+			nodeVelY[i] = oriVelY;
+			nodeF_MI_M_x[i] = F_MI_M_x;
+			nodeF_MI_M_y[i] = F_MI_M_y;	
+		}
+	}
+
+	else {
+		for (uint i = threadIntnlStart; i < cellIntnlEnd; i += threadsPerCell) {
+			double oriVelX = nodeVelX[i];
+			double oriVelY = nodeVelY[i];        
+			double F_MI_M_x = 0;
+			double F_MI_M_y = 0;
+			double nodeX = nodeLocXAddr[i];
+			double nodeY = nodeLocYAddr[i];
+
+			//loose nodes at beginning of membrane range
+			if (cellMembrStartVec != cellMembrStart) {
+				for (uint j = cellMembrStart; j < cellMembrStartVec; j++) {
+					double nodeXOther = nodeLocXAddr[j];
+					double nodeYOther = nodeLocYAddr[j];
+
+					calAndAddIB_M(nodeX, nodeY, nodeXOther, nodeYOther, progress,
+							oriVelX, oriVelY, grthPrgrCriVal_M);
+				}
+			}
+		
+			//vector-loaded nodes
+			for (uint j = cellMembrStartVec; j < cellMembrEndVec; j++) {
+				double4 nodeXOther = reinterpret_cast<double4*>(nodeLocXAddr)[j];
+				double4 nodeYOther = reinterpret_cast<double4*>(nodeLocYAddr)[j];
+
+				calAndAddIB_M_Vec4(nodeX, nodeY, nodeXOther, nodeYOther, progress,
+						oriVelX, oriVelY, grthPrgrCriVal_M);
+			}
+
+			//loose nodes and end of membrane range
+			if (cellMembrEndVec != cellMembrEnd) {
+				for (uint j = cellMembrEndVec; j < cellMembrEnd; j++) {
+					double nodeXOther = nodeLocXAddr[j];
+					double nodeYOther = nodeLocYAddr[j];
+
+					calAndAddIB_M(nodeX, nodeY, nodeXOther, nodeYOther, progress,
+							oriVelX, oriVelY, grthPrgrCriVal_M);
+				}
+			}	
+
+			//loose nodes at beginning of internal range
+			if (cellIntnlStartVec != cellIntnlStart) {
+				for (uint j = cellIntnlStart; j < cellIntnlStartVec; j++) {
+					if (j == i) 
+						continue;
+				
+					double nodeXOther = nodeLocXAddr[j];
+					double nodeYOther = nodeLocYAddr[j];
+			
+					calAndAddII_M(nodeX, nodeY, nodeXOther, nodeYOther, progress,
+							oriVelX, oriVelY, grthPrgrCriVal_M);
+				}
+			}
+
+			//vector-loaded nodes
+			for (uint j = cellIntnlStartVec; j < cellIntnlEndVec; j++) {
+				if (j == i) 
+					continue;
+				
+				double4 nodeXOther = reinterpret_cast<double4*>(nodeLocXAddr)[j];
+				double4 nodeYOther = reinterpret_cast<double4*>(nodeLocYAddr)[j];
+			
+				calAndAddII_M_Vec4(nodeX, nodeY, nodeXOther, nodeYOther, progress,
+								oriVelX, oriVelY, grthPrgrCriVal_M);
+			}
+
+			//loose nodes at end of internal range
+			if (cellIntnlEndVec != cellIntnlEnd) {
+				for (uint j = cellIntnlEndVec; j < cellIntnlEnd; j++) {
+					if (j == i) 
+						continue;
+				
+					double nodeXOther = nodeLocXAddr[j];
+					double nodeYOther = nodeLocYAddr[j];
+			
+					calAndAddII_M(nodeX, nodeY, nodeXOther, nodeYOther, progress,
+							oriVelX, oriVelY, grthPrgrCriVal_M);
+				}
+			}	
+
+			nodeVelX[i] = oriVelX;
+			nodeVelY[i] = oriVelY;
+			nodeF_MI_M_x[i] = F_MI_M_x;
+			nodeF_MI_M_y[i] = F_MI_M_y;	
+		}
+	} 
+}
+*/
 
 //Phillip: modified version invokes CUDA kernel
 void SceCells::applySceCellDisc_M() {
@@ -4869,9 +5065,10 @@ void SceCells::applySceCellDisc_M() {
 	double* nodeF_MI_M_x = thrust::raw_pointer_cast(nodes->getInfoVecs().nodeF_MI_M_x.data());
 	double* nodeF_MI_M_y = thrust::raw_pointer_cast(nodes->getInfoVecs().nodeF_MI_M_y.data());
 
-	unsigned threadsPerCell = 6;
-	
-	applySceCellDisc_M_Transform<<<16, 192>>> (nodeLocXAddr, nodeLocYAddr, nodeIsActiveAddr,
+	unsigned threadsPerCell = 8;
+
+	//threadsPerCell = 16 <<<63, 256>>> for 500 cells	
+	applySceCellDisc_M_Transform<<<63, 128>>> (nodeLocXAddr, nodeLocYAddr, nodeIsActiveAddr,
 							totalNodeCountForActiveCells, maxAllNodePerCell, maxMemNodePerCell, grthPrgrCriVal_M,
 							activeMembrNodeCounts, activeIntnlNodeCounts, growthProgress,
 							nodeVelX, nodeVelY, nodeF_MI_M_x, nodeF_MI_M_y, threadsPerCell);
@@ -4994,6 +5191,141 @@ void calAndAddIB_M(double& xPos, double& yPos, double& xPos2, double& yPos2,
 	xRes = xRes + forceValue * (xPos2 - xPos) / linkLength;
 	yRes = yRes + forceValue * (yPos2 - yPos) / linkLength;
 }
+
+__device__
+void calAndAddIB_M_Vec4(double& xPos, double& yPos, double4& xPos2, double4& yPos2,
+			double& growPro, double& xRes, double& yRes, double grthPrgrCriVal_M) {
+
+	double linkLength_W = compDist2D(xPos, yPos, xPos2.w, yPos2.w);
+	double linkLength_X = compDist2D(xPos, yPos, xPos2.x, yPos2.x);
+	double linkLength_Y = compDist2D(xPos, yPos, xPos2.y, yPos2.y);
+	double linkLength_Z = compDist2D(xPos, yPos, xPos2.z, yPos2.z);
+
+	double forceValue_W = 0;
+	double forceValue_X = 0;
+	double forceValue_Y = 0;
+	double forceValue_Z = 0;
+
+	if (growPro > grthPrgrCriEnd_M) {
+		double thresh = sceIBDiv_M[4];
+		double sceIBDiv_M_Coeff1 = -sceIBDiv_M[0] / sceIBDiv_M[2];
+		double sceIBDiv_M_Coeff2 = sceIBDiv_M[1] / sceIBDiv_M[3];
+
+		if (linkLength_W < thresh) {
+			forceValue_W = sceIBDiv_M_Coeff1
+					* exp(-linkLength_W / sceIBDiv_M[2])
+					+ sceIBDiv_M_Coeff2
+							* exp(-linkLength_W / sceIBDiv_M[3]);
+		}
+
+		if (linkLength_X < thresh) {
+			forceValue_X = sceIBDiv_M_Coeff1
+					* exp(-linkLength_X / sceIBDiv_M[2])
+					+ sceIBDiv_M_Coeff2
+							* exp(-linkLength_X / sceIBDiv_M[3]);
+		}
+
+		if (linkLength_Y < thresh) {
+			forceValue_Y = sceIBDiv_M_Coeff1
+					* exp(-linkLength_Y / sceIBDiv_M[2])
+					+ sceIBDiv_M_Coeff2
+							* exp(-linkLength_Y / sceIBDiv_M[3]);
+		}
+
+		if (linkLength_Z < thresh) {
+			forceValue_Z = sceIBDiv_M_Coeff1
+					* exp(-linkLength_Z / sceIBDiv_M[2])
+					+ sceIBDiv_M_Coeff2
+							* exp(-linkLength_Z / sceIBDiv_M[3]);
+		}	
+	} 
+	
+	else if (growPro > grthPrgrCriVal_M) {
+		double percent = (growPro - grthPrgrCriVal_M) / (grthPrgrCriEnd_M - grthPrgrCriVal_M);
+		double lenLimit = percent * (sceIBDiv_M[4]) + (1.0 - percent) * sceIB_M[4];
+
+		double intnlBPara0 = percent * (sceIBDiv_M[0])
+					+ (1.0 - percent) * sceIB_M[0];
+		double intnlBPara1 = percent * (sceIBDiv_M[1])
+					+ (1.0 - percent) * sceIB_M[1];
+		double intnlBPara2 = percent * (sceIBDiv_M[2])
+					+ (1.0 - percent) * sceIB_M[2];
+		double intnlBPara3 = percent * (sceIBDiv_M[3])
+					+ (1.0 - percent) * sceIB_M[3];
+	
+		double intnlBPara_Coeff1 = -intnlBPara0 / intnlBPara2; 
+		double intnlBPara_Coeff2 = intnlBPara1 / intnlBPara3;
+	
+		if (linkLength_W < lenLimit) {
+			forceValue_W = intnlBPara_Coeff1
+					* exp(-linkLength_W / intnlBPara2)
+					+ intnlBPara_Coeff2
+							* exp(-linkLength_W / intnlBPara3);
+		}	
+
+		if (linkLength_X < lenLimit) {
+			forceValue_X = intnlBPara_Coeff1
+					* exp(-linkLength_X / intnlBPara2)
+					+ intnlBPara_Coeff2
+							* exp(-linkLength_X / intnlBPara3);
+		}		
+
+		if (linkLength_Y < lenLimit) {
+			forceValue_Y = intnlBPara_Coeff1
+					* exp(-linkLength_Y / intnlBPara2)
+					+ intnlBPara_Coeff2
+							* exp(-linkLength_Y / intnlBPara3);
+		}	
+
+		if (linkLength_Z < lenLimit) {
+			forceValue_Z = intnlBPara_Coeff1
+					* exp(-linkLength_Z / intnlBPara2)
+					+ intnlBPara_Coeff2
+							* exp(-linkLength_Z / intnlBPara3);
+		}		
+	} 
+	
+	else {
+		double thresh = sceIB_M[4];
+		double sceIB_M_Coeff1 = -sceIB_M[0] / sceIB_M[2];
+		double sceIB_M_Coeff2 = sceIB_M[1] / sceIB_M[3];
+
+		if (linkLength_W < thresh) {
+			forceValue_W = sceIB_M_Coeff1 
+					* exp(-linkLength_W / sceIB_M[2])
+					+ sceIB_M_Coeff2 * exp(-linkLength_W / sceIB_M[3]);
+		}
+
+		if (linkLength_X < thresh) {
+			forceValue_X = sceIB_M_Coeff1 
+					* exp(-linkLength_X / sceIB_M[2])
+					+ sceIB_M_Coeff2 * exp(-linkLength_X / sceIB_M[3]);
+		}
+
+		if (linkLength_Y < thresh) {
+			forceValue_Y = sceIB_M_Coeff1 
+					* exp(-linkLength_Y / sceIB_M[2])
+					+ sceIB_M_Coeff2 * exp(-linkLength_Y / sceIB_M[3]);
+		}
+
+		if (linkLength_Z < thresh) {
+			forceValue_Z = sceIB_M_Coeff1 
+					* exp(-linkLength_Z / sceIB_M[2])
+					+ sceIB_M_Coeff2 * exp(-linkLength_Z / sceIB_M[3]);
+		}	
+	}
+
+	xRes += forceValue_W / linkLength_W * (xPos2.w - xPos) 
+			+ forceValue_X / linkLength_X * (xPos2.x - xPos)
+			+ forceValue_Y / linkLength_Y * (xPos2.y - xPos)
+			+ forceValue_Z / linkLength_Z * (xPos2.z - xPos);
+ 
+	yRes += forceValue_W / linkLength_W * (yPos2.w - yPos) 
+			+ forceValue_X / linkLength_X * (yPos2.x - yPos)
+			+ forceValue_Y / linkLength_Y * (yPos2.y - yPos)
+			+ forceValue_Z / linkLength_Z * (yPos2.z - yPos); 
+}
+
 //Ali function added for eventually computing pressure for each cells
 __device__
 void calAndAddIB_M2(double& xPos, double& yPos, double& xPos2, double& yPos2,
@@ -5046,6 +5378,151 @@ void calAndAddIB_M2(double& xPos, double& yPos, double& xPos2, double& yPos2,
 	yRes = yRes + forceValue * (yPos2 - yPos) / linkLength;
 
 }
+
+//Phillip: vectorized version
+__device__
+void calAndAddIB_M2_Vec4(double& xPos, double& yPos, double4& xPos2, double4& yPos2,
+				double& growPro, double& xRes, double& yRes, double & F_MI_M_x, double & F_MI_M_y, double grthPrgrCriVal_M) {
+
+	double linkLength_W = compDist2D(xPos, yPos, xPos2.w, yPos2.w);
+	double linkLength_X = compDist2D(xPos, yPos, xPos2.x, yPos2.x);
+	double linkLength_Y = compDist2D(xPos, yPos, xPos2.y, yPos2.y);
+	double linkLength_Z = compDist2D(xPos, yPos, xPos2.z, yPos2.z);
+
+	double forceValue_W = 0;
+	double forceValue_X = 0;
+	double forceValue_Y = 0;
+	double forceValue_Z = 0;
+
+	if (growPro > grthPrgrCriEnd_M) {
+		double thresh = sceIBDiv_M[4];
+		double IBDiv_M_Coeff1 = -sceIBDiv_M[0] / sceIBDiv_M[2];
+		double IBDiv_M_Coeff2 =	sceIBDiv_M[1] / sceIBDiv_M[3];
+
+		if (linkLength_W < thresh) {
+			forceValue_W = IBDiv_M_Coeff1
+					* exp(-linkLength_W / sceIBDiv_M[2])
+					+ IBDiv_M_Coeff2 
+							* exp(-linkLength_W / sceIBDiv_M[3]);
+		}
+
+		if (linkLength_X < thresh) {
+			forceValue_X = IBDiv_M_Coeff1
+					* exp(-linkLength_X / sceIBDiv_M[2])
+					+ IBDiv_M_Coeff2
+							* exp(-linkLength_X / sceIBDiv_M[3]);
+		}
+
+		if (linkLength_Y < thresh) {
+			forceValue_Y = IBDiv_M_Coeff1
+					* exp(-linkLength_Y / sceIBDiv_M[2])
+					+ IBDiv_M_Coeff2
+							* exp(-linkLength_Y / sceIBDiv_M[3]);
+		}
+
+		if (linkLength_Z < thresh) {
+			forceValue_Z = IBDiv_M_Coeff1
+					* exp(-linkLength_Z / sceIBDiv_M[2])
+					+ IBDiv_M_Coeff2
+							* exp(-linkLength_Z / sceIBDiv_M[3]);
+		}		
+	} 
+	
+	else if (growPro > grthPrgrCriVal_M) {
+		double percent = (growPro - grthPrgrCriVal_M)
+				/ (grthPrgrCriEnd_M - grthPrgrCriVal_M);
+		double lenLimit = percent * (sceIBDiv_M[4])
+				+ (1.0 - percent) * sceIB_M[4];
+
+		double intnlBPara0 = percent * (sceIBDiv_M[0])
+					+ (1.0 - percent) * sceIB_M[0];
+		double intnlBPara1 = percent * (sceIBDiv_M[1])
+					+ (1.0 - percent) * sceIB_M[1];
+		double intnlBPara2 = percent * (sceIBDiv_M[2])
+					+ (1.0 - percent) * sceIB_M[2];
+		double intnlBPara3 = percent * (sceIBDiv_M[3])
+					+ (1.0 - percent) * sceIB_M[3];
+
+		double intnlBPara_Coeff1 = -intnlBPara0 / intnlBPara2;
+		double intnlBPara_Coeff2 = intnlBPara1 / intnlBPara3;
+
+		if (linkLength_W < lenLimit) {		
+			forceValue_W = intnlBPara_Coeff1
+					* exp(-linkLength_W / intnlBPara2)
+					+ intnlBPara_Coeff2
+							* exp(-linkLength_W / intnlBPara3);
+		}
+
+		if (linkLength_X < lenLimit) {
+			forceValue_X = intnlBPara_Coeff1
+					* exp(-linkLength_X / intnlBPara2)
+					+ intnlBPara_Coeff2
+							* exp(-linkLength_X / intnlBPara3);
+		}
+
+		if (linkLength_Y < lenLimit) {
+			forceValue_Y = intnlBPara_Coeff1
+					* exp(-linkLength_Y / intnlBPara2)
+					+ intnlBPara_Coeff2
+							* exp(-linkLength_Y / intnlBPara3);
+		}
+
+		if (linkLength_Z < lenLimit) {
+			forceValue_Z = intnlBPara_Coeff1
+					* exp(-linkLength_Z / intnlBPara2)
+					+ intnlBPara_Coeff2
+							* exp(-linkLength_Z / intnlBPara3);
+		}
+	} 
+	
+	else {
+		double thresh = sceIB_M[4];
+		double sceIB_M_Coeff1 = -sceIB_M[0] / sceIB_M[2];
+		double sceIB_M_Coeff2 = sceIB_M[1] / sceIB_M[3];
+	
+		if (linkLength_W < thresh) {
+			forceValue_W = sceIB_M_Coeff1
+					* exp(-linkLength_W / sceIB_M[2])
+					+ sceIB_M_Coeff2 * exp(-linkLength_W / sceIB_M[3]);
+		}
+
+		if (linkLength_X < thresh) {
+			forceValue_X = sceIB_M_Coeff1
+					* exp(-linkLength_X / sceIB_M[2])
+					+ sceIB_M_Coeff2 * exp(-linkLength_X / sceIB_M[3]);
+		}
+		
+		if (linkLength_Y < thresh) {
+			forceValue_Y = sceIB_M_Coeff1
+					* exp(-linkLength_Y / sceIB_M[2])
+					+ sceIB_M_Coeff2 * exp(-linkLength_Y / sceIB_M[3]);
+		}
+
+		if (linkLength_Z < thresh) {
+			forceValue_Z = sceIB_M_Coeff1
+					* exp(-linkLength_Z / sceIB_M[2])
+					+ sceIB_M_Coeff2 * exp(-linkLength_Z / sceIB_M[3]);
+		}	
+	}
+
+	double forceSumX =  forceValue_W / linkLength_W * (xPos2.w - xPos) 
+				+ forceValue_X / linkLength_X * (xPos2.x - xPos)
+				+ forceValue_Y / linkLength_Y * (xPos2.y - xPos)
+				+ forceValue_Z / linkLength_Z * (xPos2.z - xPos);
+ 
+	double forceSumY =  forceValue_W / linkLength_W * (yPos2.w - yPos) 
+				+ forceValue_X / linkLength_X * (yPos2.x - yPos)
+				+ forceValue_Y / linkLength_Y * (yPos2.y - yPos)
+				+ forceValue_Z / linkLength_Z * (yPos2.z - yPos); 
+
+	F_MI_M_x += forceSumX;
+	F_MI_M_y += forceSumY;
+
+	xRes += forceSumX;
+	yRes += forceSumY;
+}
+
+
 __device__
 void calAndAddII_M(double& xPos, double& yPos, double& xPos2, double& yPos2,
 		double& growPro, double& xRes, double& yRes, double grthPrgrCriVal_M) {
@@ -5092,3 +5569,136 @@ void calAndAddII_M(double& xPos, double& yPos, double& xPos2, double& yPos2,
 	xRes = xRes + forceValue * (xPos2 - xPos) / linkLength;
 	yRes = yRes + forceValue * (yPos2 - yPos) / linkLength;
 }
+
+__device__
+void calAndAddII_M_Vec4(double& xPos, double& yPos, double4& xPos2, double4& yPos2,
+			double& growPro, double& xRes, double& yRes, double grthPrgrCriVal_M) {
+
+	double linkLength_W = compDist2D(xPos, yPos, xPos2.w, yPos2.w);
+	double linkLength_X = compDist2D(xPos, yPos, xPos2.x, yPos2.x);
+	double linkLength_Y = compDist2D(xPos, yPos, xPos2.y, yPos2.y);
+	double linkLength_Z = compDist2D(xPos, yPos, xPos2.z, yPos2.z);
+
+	double forceValue_W = 0;
+	double forceValue_X = 0;
+	double forceValue_Y = 0;
+	double forceValue_Z = 0;
+
+	if (growPro > grthPrgrCriEnd_M) {
+		double thresh = sceIIDiv_M[4];
+		double sceIIDiv_M_Coeff1 = -sceIIDiv_M[0] / sceIIDiv_M[2];		
+		double sceIIDiv_M_Coeff2 = + sceIIDiv_M[1] / sceIIDiv_M[3];
+
+		if (linkLength_W < thresh) {
+			forceValue_W = sceIIDiv_M_Coeff1 
+					* exp(-linkLength_W / sceIIDiv_M[2])
+					+ sceIIDiv_M_Coeff2 * exp(-linkLength_W / sceIIDiv_M[3]);
+		}
+
+		if (linkLength_X < thresh) {
+			forceValue_X = sceIIDiv_M_Coeff1 
+					* exp(-linkLength_X / sceIIDiv_M[2])
+					+ sceIIDiv_M_Coeff2 * exp(-linkLength_X / sceIIDiv_M[3]);
+		}
+
+		if (linkLength_Y < thresh) {
+			forceValue_Y = sceIIDiv_M_Coeff1 
+					* exp(-linkLength_Y / sceIIDiv_M[2])
+					+ sceIIDiv_M_Coeff2 * exp(-linkLength_Y / sceIIDiv_M[3]);
+		}
+
+		if (linkLength_Z < thresh) {
+			forceValue_Z = sceIIDiv_M_Coeff1 
+					* exp(-linkLength_Z / sceIIDiv_M[2])
+					+ sceIIDiv_M_Coeff2 * exp(-linkLength_Z / sceIIDiv_M[3]);
+		}		
+	} 
+
+	else if (growPro > grthPrgrCriVal_M) {
+		double percent = (growPro - grthPrgrCriVal_M)
+				/ (grthPrgrCriEnd_M - grthPrgrCriVal_M);
+		double lenLimit = percent * (sceIIDiv_M[4])
+				+ (1.0 - percent) * sceII_M[4];
+
+		double intraPara0 = percent * (sceIIDiv_M[0])
+					+ (1.0 - percent) * sceII_M[0];
+		double intraPara1 = percent * (sceIIDiv_M[1])
+					+ (1.0 - percent) * sceII_M[1];
+		double intraPara2 = percent * (sceIIDiv_M[2])
+					+ (1.0 - percent) * sceII_M[2];
+		double intraPara3 = percent * (sceIIDiv_M[3])
+					+ (1.0 - percent) * sceII_M[3];
+
+		double intraPara_Coeff1 = -intraPara0 / intraPara2; 
+		double intraPara_Coeff2 = intraPara1 / intraPara3;
+
+		if (linkLength_W < lenLimit) {
+			forceValue_W = intraPara_Coeff1
+					* exp(-linkLength_W / intraPara2)
+					+ intraPara_Coeff2 * exp(-linkLength_W / intraPara3);
+		}
+
+		if (linkLength_X < lenLimit) {
+			forceValue_X = intraPara_Coeff1
+					* exp(-linkLength_X / intraPara2)
+					+ intraPara_Coeff2 * exp(-linkLength_X / intraPara3);
+		}
+
+		if (linkLength_Y < lenLimit) {
+			forceValue_Y = intraPara_Coeff1
+					* exp(-linkLength_Y / intraPara2)
+					+ intraPara_Coeff2 * exp(-linkLength_Y / intraPara3);
+		}
+
+		if (linkLength_Z < lenLimit) {
+			forceValue_Z = intraPara_Coeff1
+					* exp(-linkLength_Z / intraPara2)
+					+ intraPara_Coeff2 * exp(-linkLength_Z / intraPara3);
+		}		
+	} 
+
+	else {
+		double thresh = sceII_M[4];
+		double sceII_M_Coeff1 = -sceII_M[0] / sceII_M[2]; 
+		double sceII_M_Coeff2 = sceII_M[1] / sceII_M[3]; 
+
+		if (linkLength_W < thresh) {
+			forceValue_W = sceII_M_Coeff1
+					* exp(-linkLength_W / sceII_M[2])
+					+ sceII_M_Coeff2 * exp(-linkLength_W / sceII_M[3]);
+		}
+
+		if (linkLength_X < thresh) {
+			forceValue_X = sceII_M_Coeff1
+					* exp(-linkLength_X / sceII_M[2])
+					+ sceII_M_Coeff2 * exp(-linkLength_X / sceII_M[3]);
+		}
+
+		if (linkLength_Y < thresh) {
+			forceValue_Y = sceII_M_Coeff1
+					* exp(-linkLength_Y / sceII_M[2])
+					+ sceII_M_Coeff2 * exp(-linkLength_Y / sceII_M[3]);
+		}	
+
+		if (linkLength_Z < thresh) {
+			forceValue_Z = sceII_M_Coeff1
+					* exp(-linkLength_Z / sceII_M[2])
+					+ sceII_M_Coeff2 * exp(-linkLength_Z / sceII_M[3]);
+		}	
+	}
+
+	xRes += forceValue_W / linkLength_W * (xPos2.w - xPos) 
+			+ forceValue_X / linkLength_X * (xPos2.x - xPos)
+			+ forceValue_Y / linkLength_Y * (xPos2.y - xPos)
+			+ forceValue_Z / linkLength_Z * (xPos2.z - xPos);
+ 
+	yRes += forceValue_W / linkLength_W * (yPos2.w - yPos) 
+			+ forceValue_X / linkLength_X * (yPos2.x - yPos)
+			+ forceValue_Y / linkLength_Y * (yPos2.y - yPos)
+			+ forceValue_Z / linkLength_Z * (yPos2.z - yPos); 
+}
+
+
+
+
+

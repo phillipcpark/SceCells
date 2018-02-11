@@ -98,14 +98,28 @@ double cross_Z(double vecA_X, double vecA_Y, double vecB_X, double vecB_Y);
 __device__
 void calAndAddIB_M(double& xPos, double& yPos, double& xPos2, double& yPos2,
 		double& growPro, double& xRes, double& yRes, double grthPrgrCriVal_M);
+
+__device__
+void calAndAddIB_M_Vec4(double& xPos, double& yPos, double4& xPos2, double4& yPos2,
+		double& growPro, double& xRes, double& yRes, double grthPrgrCriVal_M);
+
 //AliA 
 __device__
 void calAndAddIB_M2(double& xPos, double& yPos, double& xPos2, double& yPos2,
 		double& growPro, double& xRes, double& yRes, double &F_MI_M_x, double & F_MI_M_y,double grthPrgrCriVal_M);
 
 __device__
+void calAndAddIB_M2_Vec4(double& xPos, double& yPos, double4& xPos2, double4& yPos2,
+		double& growPro, double& xRes, double& yRes, double &F_MI_M_x, double & F_MI_M_y,double grthPrgrCriVal_M);
+
+__device__
 void calAndAddII_M(double& xPos, double& yPos, double& xPos2, double& yPos2,
 		double& growPro, double& xRes, double& yRes, double grthPrgrCriVal_M);
+
+__device__
+void calAndAddII_M_Vec4(double& xPos, double& yPos, double4& xPos2, double4& yPos2,
+		double& growPro, double& xRes, double& yRes, double grthPrgrCriVal_M);
+
 
 __device__
 double compDist2D(double &xPos, double &yPos, double &xPos2, double &yPos2);

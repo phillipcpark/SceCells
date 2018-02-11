@@ -254,10 +254,15 @@ struct pointToBucketIndex2D: public thrust::unary_function<CVec3BoolInt, Tuint2>
 	double _bucketSize;
 	unsigned int width;
 
+	uint maxNodePerCell;
+	uint maxMembrNodePerCell;	
+
 	__host__ __device__ pointToBucketIndex2D(double minX, double maxX,
-			double minY, double maxY, double bucketSize) :
-			_minX(minX), _maxX(maxX), _minY(minY), _maxY(maxY), _bucketSize(
-					bucketSize), width((maxX - minX) / bucketSize + 1) {
+			double minY, double maxY, double bucketSize,
+			uint maxNodePerCell, uint maxMembrNodePerCell):
+				_minX(minX), _maxX(maxX), _minY(minY), _maxY(maxY), _bucketSize(
+				bucketSize), width((maxX - minX) / bucketSize + 1),
+				maxNodePerCell(maxNodePerCell), maxMembrNodePerCell(maxMembrNodePerCell) {
 	}
 
 	__host__ __device__ Tuint2 operator()(const CVec3BoolInt& v) const {
@@ -266,8 +271,16 @@ struct pointToBucketIndex2D: public thrust::unary_function<CVec3BoolInt, Tuint2>
 			unsigned int x = static_cast<unsigned int>((thrust::get<0>(v) - _minX) / _bucketSize); //first operand is nodeLocX
 			unsigned int y = static_cast<unsigned int>((thrust::get<1>(v) - _minY) / _bucketSize); //first operand is nodeLocY
 
-			//return the bucket's linear index and node's global index
-			return thrust::make_tuple(y * width + x, thrust::get<4>(v));
+			//Phillip: since we only look at membrane nodes
+			uint nodeIndex = thrust::get<4>(v);
+
+			if (nodeIndex % maxNodePerCell < maxMembrNodePerCell) {
+				//return the bucket's linear index and node's global index
+				return thrust::make_tuple(y * width + x, thrust::get<4>(v));
+			}
+	
+			else
+				return thrust::make_tuple(UINT_MAX, UINT_MAX);
 		} 
 		else {
 			// return UINT_MAX to indicate the node is inactive and its value should not be used
@@ -333,9 +346,11 @@ struct NeighborFunctor2D: public thrust::unary_function<Tuint2, Tuint2> {
 		uint relativeRank = thrust::get<1>(v) % 9;
 		uint xPos = thrust::get<0>(v) % _numOfBucketsInXDim;
 		uint yPos = thrust::get<0>(v) / _numOfBucketsInXDim;
+
 		switch (relativeRank) {
+	
 		case 0:
-			return thrust::make_tuple(thrust::get<0>(v), thrust::get<1>(v));
+			return thrust::make_tuple(thrust::get<0>(v), thrust::get<1>(v));	
 		case 1:
 			if (xPos > 0 && yPos > 0) {
 				uint topLeft = (xPos - 1) + (yPos - 1) * _numOfBucketsInXDim;
