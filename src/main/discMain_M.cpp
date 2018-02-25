@@ -158,7 +158,7 @@ int main(int argc, char* argv[]) {
 	profilingCoordinator.startProfiler(primaryIndex);
 		
 	//for (uint i = 0; i <= (uint) (mainPara.totalTimeSteps); i++) {
-	for (uint i = 0; i < 50000; i++) {
+	for (uint i = 0; i < 10000; i++) {
 
 std::cout << "\n\nTIME STEP: " << (int)i << std::endl << std::endl;		
 		if (i % mainPara.aniAuxVar == 0) {

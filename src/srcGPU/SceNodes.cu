@@ -2276,6 +2276,7 @@ __global__ void applySceForcesDisc_M_transform(uint* valueAddr, double* nodeLocX
 			if (nodeRankOther == myValue) 
 				continue;
 
+			//any way to avoid divergence?
 			if (bothMembrDiffCell(myValue, nodeRankOther)) {
 				if (Lennard_Jones)
 					calAndAddInter_M2(xPos, yPos, nodeLocXAddr[nodeRankOther], nodeLocYAddr[nodeRankOther], xRes, yRes);
@@ -2295,7 +2296,6 @@ __global__ void applySceForcesDisc_M_transform(uint* valueAddr, double* nodeLocX
 	}
 }
 
-/*
 //Phillip: alternate version invokes CUDA kernel
 void SceNodes::applySceForcesDisc_M() {
 
@@ -2319,13 +2319,13 @@ void SceNodes::applySceForcesDisc_M() {
 
 	unsigned size = endIndx_M;	
 
-	applySceForcesDisc_M_transform<<<16, 256>>>(valueAddress, nodeLocXAddress, nodeLocYAddress,
+	applySceForcesDisc_M_transform<<<32, 256>>>(valueAddress, nodeLocXAddress, nodeLocYAddress,
 					nodeAdhIdxAddress, membrIntnlAddress, nodeGrowProAddr,
 					bucketVals, bucketKeys, keyStart, keyEnd,
 					nodeVelX, nodeVelY, size);	
 }
-*/
 
+/*
 void SceNodes::applySceForcesDisc_M() {
 	uint* valueAddress = thrust::raw_pointer_cast(&auxVecs.bucketValuesIncludingNeighbor[0]);
 	double* nodeLocXAddress = thrust::raw_pointer_cast(&infoVecs.nodeLocX[0]);
@@ -2366,7 +2366,7 @@ void SceNodes::applySceForcesDisc_M() {
 			AddForceDisc_M(valueAddress, nodeLocXAddress, nodeLocYAddress,
 					nodeAdhIdxAddress, membrIntnlAddress, nodeGrowProAddr));
 }
-
+*/
 
 const SceDomainPara& SceNodes::getDomainPara() const {
 	return domainPara;

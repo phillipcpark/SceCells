@@ -2078,7 +2078,8 @@ void SceCells::applyMemForce_M() {
         
        //Ali 
        
-/* 
+//comment this out START 
+/*
         thrust::device_vector<double>::iterator  MinX_Itr=thrust::min_element(nodes->getInfoVecs().nodeLocX.begin()+ allocPara_m.bdryNodeCount,
                                               nodes->getInfoVecs().nodeLocX.begin()+ allocPara_m.bdryNodeCount+ totalNodeCountForActiveCells) ;
         thrust::device_vector<double>::iterator  MaxX_Itr=thrust::max_element(nodes->getInfoVecs().nodeLocX.begin()+ allocPara_m.bdryNodeCount,
@@ -2098,7 +2099,8 @@ void SceCells::applyMemForce_M() {
         cout<<"The maximum location in X is="<<MaxX<< endl;  
         cout<<"The minimum location in Y is="<<MinY<< endl;  
         cout<<"The maximum location in Y is="<<MaxY<< endl;  
-*/  
+*/
+//comment this out END
 
       //Ali 
 	double* nodeLocXAddr = thrust::raw_pointer_cast(
@@ -5040,7 +5042,6 @@ void applySceCellDisc_M_Transform(double* nodeLocXAddr, double* nodeLocYAddr, bo
 }
 */
 
-/*
 //Phillip: modified version invokes CUDA kernel
 void SceCells::applySceCellDisc_M() {
 
@@ -5066,17 +5067,16 @@ void SceCells::applySceCellDisc_M() {
 	double* nodeF_MI_M_x = thrust::raw_pointer_cast(nodes->getInfoVecs().nodeF_MI_M_x.data());
 	double* nodeF_MI_M_y = thrust::raw_pointer_cast(nodes->getInfoVecs().nodeF_MI_M_y.data());
 
-	unsigned threadsPerCell = 8;
-
-	//threadsPerCell = 16 <<<63, 256>>> for 500 cells	
-	applySceCellDisc_M_Transform<<<63, 128>>> (nodeLocXAddr, nodeLocYAddr, nodeIsActiveAddr,
+	//threadsPerCell * 2 threads needed to calculate all nodes in cell
+	unsigned threadsPerCell = 16;
+	
+	applySceCellDisc_M_Transform<<<64, 256>>> (nodeLocXAddr, nodeLocYAddr, nodeIsActiveAddr,
 							totalNodeCountForActiveCells, maxAllNodePerCell, maxMemNodePerCell, grthPrgrCriVal_M,
 							activeMembrNodeCounts, activeIntnlNodeCounts, growthProgress,
 							nodeVelX, nodeVelY, nodeF_MI_M_x, nodeF_MI_M_y, threadsPerCell);
 }
-*/
 
-
+/*
 void SceCells::applySceCellDisc_M() {
 	totalNodeCountForActiveCells = allocPara_m.currentActiveCellCount
 			* allocPara_m.maxAllNodePerCell;
@@ -5146,7 +5146,7 @@ void SceCells::applySceCellDisc_M() {
 			AddSceCellForce(maxAllNodePerCell, maxMemNodePerCell, nodeLocXAddr,
 					nodeLocYAddr, nodeIsActiveAddr, grthPrgrCriVal_M));
 }
-
+*/
 
 __device__
 void calAndAddIB_M(double& xPos, double& yPos, double& xPos2, double& yPos2,
