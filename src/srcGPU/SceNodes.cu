@@ -2319,7 +2319,8 @@ void SceNodes::applySceForcesDisc_M() {
 
 	unsigned size = endIndx_M;	
 
-	applySceForcesDisc_M_transform<<<32, 256>>>(valueAddress, nodeLocXAddress, nodeLocYAddress,
+	//32, 256
+	applySceForcesDisc_M_transform<<<64, 256>>>(valueAddress, nodeLocXAddress, nodeLocYAddress,
 					nodeAdhIdxAddress, membrIntnlAddress, nodeGrowProAddr,
 					bucketVals, bucketKeys, keyStart, keyEnd,
 					nodeVelX, nodeVelY, size);	

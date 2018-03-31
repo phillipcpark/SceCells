@@ -5070,7 +5070,7 @@ void SceCells::applySceCellDisc_M() {
 	//threadsPerCell * 2 threads needed to calculate all nodes in cell
 	unsigned threadsPerCell = 16;
 	
-	applySceCellDisc_M_Transform<<<64, 256>>> (nodeLocXAddr, nodeLocYAddr, nodeIsActiveAddr,
+	applySceCellDisc_M_Transform<<<128, 320>>> (nodeLocXAddr, nodeLocYAddr, nodeIsActiveAddr,
 							totalNodeCountForActiveCells, maxAllNodePerCell, maxMemNodePerCell, grthPrgrCriVal_M,
 							activeMembrNodeCounts, activeIntnlNodeCounts, growthProgress,
 							nodeVelX, nodeVelY, nodeF_MI_M_x, nodeF_MI_M_y, threadsPerCell);
